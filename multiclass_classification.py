@@ -75,7 +75,7 @@ class ModifiedPerceptron:
             for xi, target in zip(X, y):
                 update = self.eta * (target - self.predict(xi))
                 # update weights
-                self.w_ += update * np.hstack( (xi, [1]) )
+                self.w_ += update * np.concatenate((xi, [1]))
                 # calculate the error (only 0 or 1)
                 errors += int(update != 0.0)
             self.errors_.append(errors)
@@ -86,10 +86,10 @@ class ModifiedPerceptron:
         
         # if X is a 1D array, add a 1 to the end
         if len(X.shape) == 1:
-            X_modified = np.hstack(( X, [1] ))
+            X_modified = np.concatenate((X, [1]))
         else:
             # otherwise, add a ones to the end of each row
-            X_modified = np.hstack(( X, np.ones((X.shape[0], 1)) ))
+            X_modified = np.concatenate((X, np.ones((X.shape[0], 1))), axis=1)
 
         return np.dot(X_modified, self.w_)
     
@@ -116,14 +116,14 @@ class MultiplePerceptrons:
         
 
     def fit(self, X, y):
-        y1 = np.where(y == 0, 0, 1)
+        y1 = np.where(y == 0, 1, 0)
         self.classifier1.fit(X, y1)
 
-        y2 = np.where(y == 1, 0, 1)
+        y2 = np.where(y == 1, 1, 0)
 
         self.classifier2.fit(X, y2)
 
-        y3 = np.where(y == 2, 0, 1)
+        y3 = np.where(y == 2, 1, 0)
         self.classifier3.fit(X, y3)
 
     def predict(self, X):
@@ -156,8 +156,8 @@ multiple_perceptrons.fit(X, y)
 
 random_sample_index = 35
 
-print(f'Predicted: {multiple_perceptrons.predict(X[random_sample_index])}')
-print(f'Actual: {y[random_sample_index]}')
+print(f'Predicted: {multiple_perceptrons.predict(X)}')
+print(f'Actual: {y}')
 #print(multiple_perceptrons.predict(X[0:50]))
 
 

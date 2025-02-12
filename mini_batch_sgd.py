@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.datasets import load_iris
 
 """
 (4 points) In the textbook, both SGD and mini-batch GD are explained. Let us write a new training function
@@ -8,7 +9,7 @@ randomly selected subset of the training data. The size (number of samples) of t
 size which is a hyperparameter decided by the user.
 """
 
-class AdalineSGD:
+class ModifiedAdalineSGD:
     """ADAptive LInear NEuron classifier.
     
     Parameters
@@ -73,8 +74,28 @@ class AdalineSGD:
             self.losses_.append(avg_loss)
         return self
 
-    def fit_mini_batch_SGD(self, X, y):
-        pass
+    def fit_mini_batch_SGD(self, X, y, batch_size=4):
+        # use numpy's vector operations to update the hyperparameters
+        self._initialize_weights(X.shape[1])
+        self.losses_ = []
+        num_of_subsets = X.shape[0] // batch_size
+
+        for _ in range(self.n_iter):
+            # shuffle the dataset
+            if self.shuffle:
+                X, y = self._shuffle(X, y)
+
+            losses = []
+            # for each subset of the data
+            for i in range(num_of_subsets):
+                start = batch_size * i
+                end = start + batch_size
+                losses.append(self._update_weights(X[start:end], y[start:end]))
+            
+            avg_loss = np.mean(losses)
+            self.losses_.append(avg_loss)
+
+        return self
     
     def partial_fit(self, X, y):
         """Fit training data without reinitializing the weights"""
@@ -104,8 +125,9 @@ class AdalineSGD:
         """Apply Adaline learning rule to update the weights"""
         output = self.activation(self.net_input(xi))
         error = (target - output)
-        self.w_ += self.eta * 2.0 * xi * (error)
-        self.b_ += self.eta * 2.0 * error
+        # modified update rule to work with batches
+        self.w_ += self.eta * 2.0 * xi.T @ (error)
+        self.b_ += self.eta * 2.0 * error.sum()
         loss = error**2
         return loss
     
@@ -121,3 +143,17 @@ class AdalineSGD:
         """Return class label after unit step"""
         return np.where(self.activation(self.net_input(X))
                         >= 0.5, 1, 0)
+
+
+# loading iris dataset
+iris = load_iris()
+X = iris.data[:]
+y = iris.target
+
+model = ModifiedAdalineSGD(random_state=None)
+model.fit_mini_batch_SGD(X, y, batch_size=2)
+
+print(f'Predicted: {model.predict(X[42])}')
+print(f'Actual: {y[42]}')
+
+

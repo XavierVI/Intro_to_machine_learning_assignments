@@ -1,15 +1,17 @@
 from sklearn import datasets
 import numpy as np
-
+import matplotlib.pyplot as plt
+from textbook_code import Perceptron
 
 
 """
+Task 4:
 (4 points) Modify the class Perceptron given in the textbook such that the bias data field b is absorbed by
 the weight vector w . Your program is required to be compatible with the training program in the textbook.
 
 """
 
-class Perceptron:
+class ModifiedPerceptron:
     """Perceptron classifier.
     
     Parameters
@@ -64,16 +66,16 @@ class Perceptron:
 
         # a list to accumulate the errors
         self.errors_ = []
+
+        print(f'Started training with X: {X.shape}')
         
         for _ in range(self.n_iter):
             errors = 0
             # for each (x[i], y[i]) in (X, y)
             for xi, target in zip(X, y):
-                # compute eta * (target - prediction)
                 update = self.eta * (target - self.predict(xi))
-                # update weights and bias
-                self.w_ += update * np.hstack((xi, np.array([1])))
-                # self.b_ += update
+                # update weights
+                self.w_ += update * np.hstack( (xi, [1]) )
                 # calculate the error (only 0 or 1)
                 errors += int(update != 0.0)
             self.errors_.append(errors)
@@ -81,10 +83,14 @@ class Perceptron:
     
     def net_input(self, X):
         """Calculate net input"""
-        # this computes the inner product between X and w and then adds
-        # b element wise.
-        # add an extra 1 to to X then compute the inner product like normal
-        X_modified = np.hstack((X, np.array([1])))
+        
+        # if X is a 1D array, add a 1 to the end
+        if len(X.shape) == 1:
+            X_modified = np.hstack(( X, [1] ))
+        else:
+            # otherwise, add a ones to the end of each row
+            X_modified = np.hstack(( X, np.ones((X.shape[0], 1)) ))
+
         return np.dot(X_modified, self.w_)
     
     def predict(self, X):
@@ -93,6 +99,7 @@ class Perceptron:
 
 
 """
+Task 3:
 (6 points) A perceptron can only be used for binary classification, however, the Iris dataset has 3 classes:
 setosa, versicolor and virginica. If you are only allowed to use perceptrons but the number is not limited,
 how would you like to perform a multiclass classification for the Iris data set (all features)? Please write a
@@ -100,12 +107,12 @@ program (demo) for this task using the new perceptron class developed in the pre
 
 """
 
-class MulticlassPerceptrons:
+class MultiplePerceptrons:
 
     def __init__(self):
-        self.classifier1 = Perceptron()
-        self.classifier2 = Perceptron()
-        self.classifier3 = Perceptron()
+        self.classifier1 = ModifiedPerceptron()
+        self.classifier2 = ModifiedPerceptron()
+        self.classifier3 = ModifiedPerceptron()
         
 
     def fit(self, X, y):
@@ -120,19 +127,18 @@ class MulticlassPerceptrons:
         self.classifier3.fit(X, y3)
 
     def predict(self, X):
-        """
+        predictions = np.array([
+            self.classifier1.predict(X),
+            self.classifier2.predict(X),
+            self.classifier3.predict(X)
+        ]).T
         
-        """
-        pred1 = self.classifier1.predict(X)
-        pred2 = self.classifier2.predict(X)
-        pred3 = self.classifier3.predict(X)
+        # if the sample was 1D, return the max along axis 0
+        if len(predictions.shape) == 1:
+            return np.argmax(predictions, axis=0)
 
-        if pred1 and not (pred2 and pred3):
-            return 0
-        elif pred2 and not (pred1 and pred3):
-            return 1
-        else:
-            return 2
+        # otherwise, return the max along axis 1
+        return np.argmax(predictions, axis=1)
 
 
 
@@ -142,21 +148,16 @@ class MulticlassPerceptrons:
 iris = datasets.load_iris()
 X = iris.data[:]
 y = iris.target
-print(f'Targets: {y}')
-
-# instantiating and training a model
-model = Perceptron(random_state=None)
-model.fit(X, y)
 
 # the test book says most scikit learn algorithms use the one-versus-rest test.
 # could we just train a perceptron for each subset of the features? (each one performs binary classification?)
-multiclass_perceptrons = MulticlassPerceptrons()
-multiclass_perceptrons.fit(X, y)
+multiple_perceptrons = MultiplePerceptrons()
+multiple_perceptrons.fit(X, y)
 
-random_sample_index = 1
-random_sample_features = X[random_sample_index]
-random_sample_target = y[random_sample_index]
+random_sample_index = 35
 
-print(f'Predicted: {multiclass_perceptrons.predict(random_sample_features)}')
-print(f'Actual: {random_sample_target}')
+print(f'Predicted: {multiple_perceptrons.predict(X[random_sample_index])}')
+print(f'Actual: {y[random_sample_index]}')
+#print(multiple_perceptrons.predict(X[0:50]))
+
 

@@ -5,7 +5,7 @@ from textbook_code import Perceptron
 
 
 """
-Task 4:
+Task 2:
 (4 points) Modify the class Perceptron given in the textbook such that the bias data field b is absorbed by
 the weight vector w . Your program is required to be compatible with the training program in the textbook.
 
@@ -59,10 +59,15 @@ class ModifiedPerceptron:
         # initialize weights and the bias
         self.w_ = rgen.normal(loc=0.0, scale=0.01,
                               size=X.shape[1])
+        ###################################################
         # add the bias to the end of the weight matrix
         self.w_ = np.hstack((self.w_, np.array([0])))
-        # remove the bias and add an extra computation
+        ##################################################
+
+        ###################################################
+        # removed the bias and add an extra computation
         # self.b_ = np.float_(0.)
+        ##################################################
 
         # a list to accumulate the errors
         self.errors_ = []
@@ -74,23 +79,25 @@ class ModifiedPerceptron:
             # for each (x[i], y[i]) in (X, y)
             for xi, target in zip(X, y):
                 update = self.eta * (target - self.predict(xi))
+                ###############################################
                 # update weights
                 self.w_ += update * np.concatenate((xi, [1]))
-                # calculate the error (only 0 or 1)
+                ##############################################
+                
                 errors += int(update != 0.0)
             self.errors_.append(errors)
         return self
     
     def net_input(self, X):
         """Calculate net input"""
-        
+        #############################################
         # if X is a 1D array, add a 1 to the end
         if len(X.shape) == 1:
             X_modified = np.concatenate((X, [1]))
         else:
             # otherwise, add a ones to the end of each row
             X_modified = np.concatenate((X, np.ones((X.shape[0], 1))), axis=1)
-
+        ############################################
         return np.dot(X_modified, self.w_)
     
     def predict(self, X):
@@ -110,27 +117,27 @@ program (demo) for this task using the new perceptron class developed in the pre
 class MultiplePerceptrons:
 
     def __init__(self):
-        self.classifier1 = ModifiedPerceptron()
-        self.classifier2 = ModifiedPerceptron()
-        self.classifier3 = ModifiedPerceptron()
+        # create three instances of a classifier
+        self.setosa_classifier = ModifiedPerceptron()
+        self.veriscolor_classifier = ModifiedPerceptron()
+        self.verginica_classifier = ModifiedPerceptron()
         
 
     def fit(self, X, y):
-        y1 = np.where(y == 0, 1, 0)
-        self.classifier1.fit(X, y1)
+        setosa_labels = np.where(y == 0, 1, 0)
+        self.setosa_classifier.fit(X, setosa_labels)
 
-        y2 = np.where(y == 1, 1, 0)
+        versicolor_labels = np.where(y == 1, 1, 0)
+        self.veriscolor_classifier.fit(X, versicolor_labels)
 
-        self.classifier2.fit(X, y2)
-
-        y3 = np.where(y == 2, 1, 0)
-        self.classifier3.fit(X, y3)
+        verginica_labels = np.where(y == 2, 1, 0)
+        self.verginica_classifier.fit(X, verginica_labels)
 
     def predict(self, X):
         predictions = np.array([
-            self.classifier1.predict(X),
-            self.classifier2.predict(X),
-            self.classifier3.predict(X)
+            self.setosa_classifier.predict(X),
+            self.veriscolor_classifier.predict(X),
+            self.verginica_classifier.predict(X)
         ]).T
         
         # if the sample was 1D, return the max along axis 0
@@ -154,10 +161,8 @@ y = iris.target
 multiple_perceptrons = MultiplePerceptrons()
 multiple_perceptrons.fit(X, y)
 
-random_sample_index = 35
-
-print(f'Predicted: {multiple_perceptrons.predict(X)}')
-print(f'Actual: {y}')
+print(f'Predicted: {multiple_perceptrons.predict(X[42])}')
+print(f'Actual: {y[42]}')
 #print(multiple_perceptrons.predict(X[0:50]))
 
 

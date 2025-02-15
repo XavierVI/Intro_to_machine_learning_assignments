@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.datasets import load_iris
 
 """
+Task 4:
 (4 points) In the textbook, both SGD and mini-batch GD are explained. Let us write a new training function
 fit mini batch SGD in the class AdalineSGD such that the new function combines SGD and mini-batch
 GD in training. In every epoch, the mini-batch SGD method updates the learning parameters based on a
@@ -78,7 +79,10 @@ class ModifiedAdalineSGD:
         # use numpy's vector operations to update the hyperparameters
         self._initialize_weights(X.shape[1])
         self.losses_ = []
+        #########################################
+        # compute the number of subsets
         num_of_subsets = X.shape[0] // batch_size
+        #########################################
 
         for _ in range(self.n_iter):
             # shuffle the dataset
@@ -86,11 +90,16 @@ class ModifiedAdalineSGD:
                 X, y = self._shuffle(X, y)
 
             losses = []
+            #######################################
             # for each subset of the data
             for i in range(num_of_subsets):
+                # compute the indices of the first and last
+                # instance in the subset
                 start = batch_size * i
                 end = start + batch_size
+                # pass the subset to _update_weights
                 losses.append(self._update_weights(X[start:end], y[start:end]))
+            #####################################
             
             avg_loss = np.mean(losses)
             self.losses_.append(avg_loss)
@@ -125,8 +134,13 @@ class ModifiedAdalineSGD:
         """Apply Adaline learning rule to update the weights"""
         output = self.activation(self.net_input(xi))
         error = (target - output)
+        ############################################
         # modified update rule to work with batches
-        self.w_ += self.eta * 2.0 * xi.T @ (error)
+        if len(xi.shape) == 1:
+            self.w_ += self.eta * 2.0 * xi * error
+        else:
+            self.w_ += self.eta * 2.0 * xi.T @ error
+        ###########################################
         self.b_ += self.eta * 2.0 * error.sum()
         loss = error**2
         return loss
@@ -149,11 +163,12 @@ class ModifiedAdalineSGD:
 iris = load_iris()
 X = iris.data[:]
 y = iris.target
+y = np.where(y == 0, 1, 0)
 
 model = ModifiedAdalineSGD(random_state=None)
-model.fit_mini_batch_SGD(X, y, batch_size=2)
+model.fit_mini_batch_SGD(X, y)
 
-print(f'Predicted: {model.predict(X[42])}')
-print(f'Actual: {y[42]}')
+print(f'Predicted: {model.predict(X)}')
+print(f'Actual: {y}')
 
 

@@ -1,5 +1,8 @@
 import numpy as np
 from sklearn.datasets import load_iris
+from textbook_code import AdalineGD
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 """
 Task 4:
@@ -163,12 +166,56 @@ class ModifiedAdalineSGD:
 iris = load_iris()
 X = iris.data[:]
 y = iris.target
+# set the labels to be 1 for setosa and zero for the rests
 y = np.where(y == 0, 1, 0)
 
-model = ModifiedAdalineSGD(random_state=None)
-model.fit_mini_batch_SGD(X, y)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-print(f'Predicted: {model.predict(X)}')
-print(f'Actual: {y}')
+epochs = 10
+learning_rate = 0.01
+random_state_value = 1
+
+adaline_mini_batch_SGD = ModifiedAdalineSGD(
+    eta=learning_rate,
+    n_iter=epochs,
+    random_state=random_state_value
+)
+adaline_SGD = ModifiedAdalineSGD(
+    eta=learning_rate,
+    n_iter=epochs,
+    random_state=random_state_value
+) 
+adaline_GD = AdalineGD(
+    eta=learning_rate,
+    n_iter=epochs,
+    random_state=random_state_value
+)
+
+# train each model
+adaline_GD.fit(X, y)
+adaline_mini_batch_SGD.fit_mini_batch_SGD(X_train, y_train, batch_size=2)
+adaline_SGD.fit(X, y)
+
+
+# test each model (number of misclassifications)
+adaline_GD_performance = np.sum(adaline_GD.predict(X_test) == y_test)
+adaline_SGD_performance = np.sum(adaline_SGD.predict(X_test) == y_test)
+adaline_mini_batch_SGD_performance = np.sum(adaline_mini_batch_SGD.predict(X_test) == y_test)
+
+misclassifications = [
+    adaline_GD_performance,
+    adaline_SGD_performance,
+    adaline_mini_batch_SGD_performance
+]
+models = ['Adaline GD', 'Adaline SGD', 'Adaline Mini-batch SGD']
+bar_colors = ['tab:blue', 'tab:red', 'tab:orange']
+
+plt.bar(models, misclassifications, color=bar_colors)
+plt.xlabel('Model')
+plt.ylabel('Number of Misclassifications')
+plt.title('Bar chart comparing the number of misclassifications')
+# plt.show()
+plt.savefig('task4_bar_chart')
+
 
 

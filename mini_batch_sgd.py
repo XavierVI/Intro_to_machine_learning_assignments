@@ -192,15 +192,15 @@ adaline_GD = AdalineGD(
 )
 
 # train each model
-adaline_GD.fit(X, y)
-adaline_mini_batch_SGD.fit_mini_batch_SGD(X_train, y_train, batch_size=2)
-adaline_SGD.fit(X, y)
+adaline_GD.fit(X_train, y_train)
+adaline_mini_batch_SGD.fit_mini_batch_SGD(X_train, y_train, batch_size=8)
+adaline_SGD.fit(X_train, y_train)
 
 
 # test each model (number of misclassifications)
-adaline_GD_performance = np.sum(adaline_GD.predict(X_test) == y_test)
-adaline_SGD_performance = np.sum(adaline_SGD.predict(X_test) == y_test)
-adaline_mini_batch_SGD_performance = np.sum(adaline_mini_batch_SGD.predict(X_test) == y_test)
+adaline_GD_performance = np.sum(adaline_GD.predict(X_test) != y_test)
+adaline_SGD_performance = np.sum(adaline_SGD.predict(X_test) != y_test)
+adaline_mini_batch_SGD_performance = np.sum(adaline_mini_batch_SGD.predict(X_test) != y_test)
 
 misclassifications = [
     adaline_GD_performance,
@@ -214,8 +214,8 @@ plt.bar(models, misclassifications, color=bar_colors)
 plt.xlabel('Model')
 plt.ylabel('Number of Misclassifications')
 plt.title('Bar chart comparing the number of misclassifications')
-# plt.show()
-plt.savefig('task4_bar_chart')
+plt.show()
+# plt.savefig('task4_bar_chart')
 
 
 

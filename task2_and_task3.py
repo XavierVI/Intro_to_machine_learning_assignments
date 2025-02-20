@@ -1,8 +1,6 @@
-from sklearn import datasets
+from sklearn.datasets import load_iris
 import numpy as np
-import matplotlib.pyplot as plt
-from textbook_code import Perceptron
-
+from sklearn.model_selection import train_test_split
 
 """
 Task 2:
@@ -66,13 +64,13 @@ class ModifiedPerceptron:
 
         ###################################################
         # removed the bias and add an extra computation
-        # self.b_ = np.float_(0.)
+        # self.b_ = np.float64(0.)
         ##################################################
 
         # a list to accumulate the errors
         self.errors_ = []
 
-        print(f'Started training with X: {X.shape}')
+        # print(f'Started training with X: {X.shape}')
         
         for _ in range(self.n_iter):
             errors = 0
@@ -138,31 +136,27 @@ class MultiplePerceptrons:
             self.setosa_classifier.predict(X),
             self.veriscolor_classifier.predict(X),
             self.verginica_classifier.predict(X)
-        ]).T
+        ])
         
-        # if the sample was 1D, return the max along axis 0
-        if len(predictions.shape) == 1:
-            return np.argmax(predictions, axis=0)
-
-        # otherwise, return the max along axis 1
-        return np.argmax(predictions, axis=1)
+        return np.argmax(predictions, axis=0)
 
 
 
-
-
-# loading iris dataset
-iris = datasets.load_iris()
-X = iris.data[:]
+iris = load_iris()
+X = iris.data
 y = iris.target
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
 # the test book says most scikit learn algorithms use the one-versus-rest test.
 # could we just train a perceptron for each subset of the features? (each one performs binary classification?)
 multiple_perceptrons = MultiplePerceptrons()
-multiple_perceptrons.fit(X, y)
+multiple_perceptrons.fit(X_train, y_train)
 
-print(f'Predicted: {multiple_perceptrons.predict(X[42])}')
-print(f'Actual: {y[42]}')
-#print(multiple_perceptrons.predict(X[0:50]))
+predictions = multiple_perceptrons.predict(X_test)
+
+print(f'Predicted labels: {predictions}')
+print(f'Actual labels: {y_test}')
+print(f'Number of misclassifications: {np.sum(predictions != y_test)} / {y_test.shape[0]}')
 
 

@@ -29,7 +29,6 @@ def make_classification(d, n, u=5, threshold=0.01, random_state=1):
     rng = np.random.default_rng(random_state)
     # create a random normal vector to define a hyperplane
     normal_vector = rng.random(d)
-    normal_vector /= np.linalg.norm(normal_vector)
 
     # uniform set of joint angles
     data_points = rng.uniform(
@@ -76,3 +75,5 @@ plt.plot(x1_vals, x2_vals, '-b')
 plt.xlabel('x1')
 plt.ylabel('x2')
 plt.show()
+
+# np.savetxt("data.csv", data_points, delimiter=",")

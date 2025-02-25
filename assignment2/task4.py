@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import os
+import time
 
 """
 Read the scikit-learn documentation for SVMs. We are going to investigate the performance of
@@ -22,33 +23,35 @@ regularization parameter.
 prediction accuracies (on the test dataset) of training a linear SVC by solving the primal and dual problems
 respectively.
 """
-    
-
-def train_models(primal_model, dual_model, X_train, y_train):
-    primal_model.fit(X_train, y_train)
-    dual_model.fit(X_train, y_train)
 
 
 # define the models
-loss = 'hinge'
+loss = 'squared_hinge'
 random_state = 1
+max_iters = 500
 primal_model = LinearSVC(
-    # loss=loss,
+    loss=loss,
     random_state=random_state,
     dual=False,
-    penalty='l2'
+    max_iter=max_iters
 )
 
 dual_model = LinearSVC(
-    # loss=loss,
+    loss=loss,
     random_state=random_state,
     dual=True,
-    penalty='l2'
+    max_iter=max_iters
 )
 
 
 test_size = 0.3
 data_dir = os.path.join(os.curdir, 'data')
+primal_time_costs = []
+dual_time_costs = []
+primal_accuracies = []
+dual_accuracies = []
+scale_combinations = []
+
 
 for file in os.listdir(data_dir):
     # loading the dataset and splitting the data using scikit learn
@@ -59,33 +62,65 @@ for file in os.listdir(data_dir):
     d = X.shape[1]
     n = X.shape[0]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, 
+        test_size=test_size, random_state=random_state)
 
-    # training each model
-    train_models(primal_model, dual_model, X_train, y_train)
+    # training each model and timing the training time
+    start = time.time()
+    primal_model.fit(X_train, y_train)
+    end = time.time()
+    primal_time_costs.append(end - start)
 
+    start = time.time()
+    dual_model.fit(X_train, y_train)
+    end = time.time()
+    dual_time_costs.append(end - start)
+
+    # making predictions and calculating the accuracy for each model
     primal_predictions = primal_model.predict(X_test)
     primal_accuracy = np.sum(
         np.where(primal_predictions == y_test, 1, 0)) / y_test.shape[0] * 100
+    primal_accuracies.append(primal_accuracy)
 
     dual_predictions = dual_model.predict(X_test)
     dual_accuracy = np.sum(
         np.where(dual_predictions == y_test, 1, 0)) / y_test.shape[0] * 100
+    dual_accuracies.append(dual_accuracy)
     
-    label = [f'd={d}, n={n}']
-    plt.bar(label, primal_accuracy, width=0.15, color='red')
-    plt.bar(label, dual_accuracy, width=0.10, color='blue')
+    scale_combinations.append(f'd={d}, n={n}')
 
 
-"""
-NOTE: you want to plot the accuracy of the model vs. the scale combinations d and n.
+# creating two figures
+fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 
-One way to do this is to create one figure (a bar graph) for each scale combination, and plot the accuracy for each model.
-Is this the best way to represent the data?
-"""
-plt.xlabel("Scale Combinations")
-plt.ylabel("Accuracy (%)")
-plt.legend(['Primal', 'Dual'])
-plt.title("Accuracy vs. Scale Combinations")
+x = np.arange(len(scale_combinations))  # Label positions
+
+bar_width = 0.35  # Width of bars
+
+ax[0].bar(x - bar_width / 2, primal_accuracies,
+          bar_width, label="Primal", color="red")
+ax[0].bar(x + bar_width / 2, dual_accuracies,
+          bar_width, label="Dual", color="blue")
+
+ax[0].set_xticks(x)
+ax[0].set_xticklabels(scale_combinations, rotation=30, ha="right")
+ax[0].set_xlabel("Scale Combinations")
+ax[0].set_ylabel("Accuracy (%)")
+ax[0].set_title("Accuracy vs. Scale Combinations")
+ax[0].legend()
+
+# --- Plot Time Cost ---
+ax[1].bar(x - bar_width / 2, primal_time_costs,
+          bar_width, label="Primal", color="red")
+ax[1].bar(x + bar_width / 2, dual_time_costs,
+          bar_width, label="Dual", color="blue")
+
+ax[1].set_xticks(x)
+ax[1].set_xticklabels(scale_combinations, rotation=30, ha="right")
+ax[1].set_xlabel("Scale Combinations")
+ax[1].set_ylabel("Training Time (s)")
+ax[1].set_title("Training Time vs. Scale Combinations")
+ax[1].legend()
+
+plt.tight_layout()
 plt.show()
-

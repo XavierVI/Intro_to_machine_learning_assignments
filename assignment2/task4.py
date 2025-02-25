@@ -28,7 +28,7 @@ respectively.
 # define the models
 loss = 'squared_hinge'
 random_state = 1
-max_iters = 500
+max_iters = 1500
 primal_model = LinearSVC(
     loss=loss,
     random_state=random_state,
@@ -91,36 +91,7 @@ for file in os.listdir(data_dir):
 
 
 # creating two figures
-fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+for scale_comb, primal_time, dual_time, primal_acc, dual_acc in zip(scale_combinations, primal_time_costs, dual_time_costs, primal_accuracies, dual_accuracies):
+    print(f'{scale_comb} | {primal_time}, {dual_time} | {primal_acc}, {dual_acc}')
 
-x = np.arange(len(scale_combinations))  # Label positions
 
-bar_width = 0.35  # Width of bars
-
-ax[0].bar(x - bar_width / 2, primal_accuracies,
-          bar_width, label="Primal", color="red")
-ax[0].bar(x + bar_width / 2, dual_accuracies,
-          bar_width, label="Dual", color="blue")
-
-ax[0].set_xticks(x)
-ax[0].set_xticklabels(scale_combinations, rotation=30, ha="right")
-ax[0].set_xlabel("Scale Combinations")
-ax[0].set_ylabel("Accuracy (%)")
-ax[0].set_title("Accuracy vs. Scale Combinations")
-ax[0].legend()
-
-# --- Plot Time Cost ---
-ax[1].bar(x - bar_width / 2, primal_time_costs,
-          bar_width, label="Primal", color="red")
-ax[1].bar(x + bar_width / 2, dual_time_costs,
-          bar_width, label="Dual", color="blue")
-
-ax[1].set_xticks(x)
-ax[1].set_xticklabels(scale_combinations, rotation=30, ha="right")
-ax[1].set_xlabel("Scale Combinations")
-ax[1].set_ylabel("Training Time (s)")
-ax[1].set_title("Training Time vs. Scale Combinations")
-ax[1].legend()
-
-plt.tight_layout()
-plt.show()

@@ -2,8 +2,6 @@ from sklearn.svm import LinearSVC
 from sklearn.model_selection import train_test_split
 import numpy as np
 
-import matplotlib.pyplot as plt
-
 import os
 import time
 
@@ -26,23 +24,19 @@ respectively.
 
 
 # define the models
-loss = 'squared_hinge'
 random_state = 1
-max_iters = 1500
+max_iters = 2000
 primal_model = LinearSVC(
-    loss=loss,
     random_state=random_state,
     dual=False,
     max_iter=max_iters
 )
 
 dual_model = LinearSVC(
-    loss=loss,
     random_state=random_state,
     dual=True,
     max_iter=max_iters
 )
-
 
 test_size = 0.3
 data_dir = os.path.join(os.curdir, 'data')
@@ -51,7 +45,6 @@ dual_time_costs = []
 primal_accuracies = []
 dual_accuracies = []
 scale_combinations = []
-
 
 for file in os.listdir(data_dir):
     # loading the dataset and splitting the data using scikit learn
@@ -78,20 +71,22 @@ for file in os.listdir(data_dir):
 
     # making predictions and calculating the accuracy for each model
     primal_predictions = primal_model.predict(X_test)
-    primal_accuracy = np.sum(
-        np.where(primal_predictions == y_test, 1, 0)) / y_test.shape[0] * 100
+    primal_accuracy = np.mean(primal_predictions == y_test) * 100
     primal_accuracies.append(primal_accuracy)
 
     dual_predictions = dual_model.predict(X_test)
-    dual_accuracy = np.sum(
-        np.where(dual_predictions == y_test, 1, 0)) / y_test.shape[0] * 100
+    dual_accuracy = np.mean(dual_predictions == y_test) * 100
     dual_accuracies.append(dual_accuracy)
     
     scale_combinations.append(f'd={d}, n={n}')
 
 
-# creating two figures
-for scale_comb, primal_time, dual_time, primal_acc, dual_acc in zip(scale_combinations, primal_time_costs, dual_time_costs, primal_accuracies, dual_accuracies):
-    print(f'{scale_comb} | {primal_time}, {dual_time} | {primal_acc}, {dual_acc}')
+# printing out the data as a table
+header = f'{"Scale":<10} | {"Primal Time":<12} | {"Dual Time":<10} | {"Primal Acc":<10} | {"Dual Acc":<10}'
+print(header)
+print('-' * len(header))
+
+for scale, p_time, d_time, p_acc, d_acc in zip(scale_combinations, primal_time_costs, dual_time_costs, primal_accuracies, dual_accuracies):
+    print(f'{scale:<10} | {p_time:<12.3f} | {d_time:<10.3f} | {p_acc:<10.2f} | {d_acc:<10.2f}')
 
 

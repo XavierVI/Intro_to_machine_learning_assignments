@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def make_classification(d, n, u=5, threshold=None, random_state=1):
+def make_classification(d, n, u=5, threshold=None, random_state=1, debug=False):
     """
     This function generates a set of points in a
     'd' dimensional real space. Each point will lie in
@@ -23,7 +23,12 @@ def make_classification(d, n, u=5, threshold=None, random_state=1):
     the point is kept in the dataset. Otherwise it is removed.
 
     random_state: the seed for generating random points
+
+    debug: if true, prints information for debugging
     """
+
+    if debug:
+        print(f'Generating data for d={d}, n={n}, u={u}')
     # create a random number generator based on
     # the given random_state
     rng = np.random.default_rng(random_state)
@@ -32,13 +37,9 @@ def make_classification(d, n, u=5, threshold=None, random_state=1):
     # uses the L2 norm by default
     normal_vector_norm = np.linalg.norm(normal_vector)
 
-    # normalize the vector
-    normal_vector /= normal_vector_norm
-
-    # threshold for removing points within the margin
+    # if a threshold wasn't given, will use 1 / ||a|| as the threshold
     if threshold == None:
-        threshold = u / 5
-    
+        threshold = 1 / normal_vector_norm
 
     # uniform set of joint angles
     data_points = rng.uniform(
@@ -55,6 +56,8 @@ def make_classification(d, n, u=5, threshold=None, random_state=1):
     while(len(valid_points) < n):
         # print(len(valid_points))
         num_needed = n - len(valid_points)
+        if debug:
+            print(f'Num needed: {num_needed}')
         new_points = rng.uniform(-u, u, size=(num_needed, d))
         # computing the distances between each point and our line
         distances = np.dot(new_points, normal_vector) / normal_vector_norm
@@ -72,5 +75,5 @@ def make_classification(d, n, u=5, threshold=None, random_state=1):
     # appending the labels to the data points
     data = np.column_stack((data_points, labels))
 
-    return (data, normal_vector)
+    return data
 

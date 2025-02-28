@@ -25,7 +25,7 @@ respectively.
 
 # define the models
 random_state = 1
-max_iters = 2000
+max_iters = 5_000_000
 primal_model = LinearSVC(
     random_state=random_state,
     dual=False,
@@ -40,6 +40,7 @@ dual_model = LinearSVC(
 
 test_size = 0.3
 data_dir = os.path.join(os.curdir, 'data')
+table = []
 primal_time_costs = []
 dual_time_costs = []
 primal_accuracies = []
@@ -62,12 +63,14 @@ for file in os.listdir(data_dir):
     start = time.time()
     primal_model.fit(X_train, y_train)
     end = time.time()
-    primal_time_costs.append(end - start)
+    primal_time_cost = end - start
+    primal_time_costs.append(primal_time_cost)
 
     start = time.time()
     dual_model.fit(X_train, y_train)
     end = time.time()
-    dual_time_costs.append(end - start)
+    dual_time_cost = end - start
+    dual_time_costs.append(dual_time_cost)
 
     # making predictions and calculating the accuracy for each model
     primal_predictions = primal_model.predict(X_test)
@@ -79,14 +82,18 @@ for file in os.listdir(data_dir):
     dual_accuracies.append(dual_accuracy)
     
     scale_combinations.append(f'd={d}, n={n}')
+    table.append([d, n, primal_time_cost, dual_time_cost,
+                 primal_accuracy, dual_accuracy])
 
+
+# sort the table
+table = sorted(table, key=lambda x: (x[0], x[1]))
 
 # printing out the data as a table
-header = f'{"Scale":<10} | {"Primal Time":<12} | {"Dual Time":<10} | {"Primal Acc":<10} | {"Dual Acc":<10}'
+header = f'{"Scale":<10} | {"Primal Time":<10} | {"Dual Time":<10} | {"Primal Acc":<10} | {"Dual Acc":<10}'
 print(header)
 print('-' * len(header))
 
-for scale, p_time, d_time, p_acc, d_acc in zip(scale_combinations, primal_time_costs, dual_time_costs, primal_accuracies, dual_accuracies):
-    print(f'{scale:<10} | {p_time:<12.3f} | {d_time:<10.3f} | {p_acc:<10.2f} | {d_acc:<10.2f}')
-
+for row in table:
+    print(f'{row[0]:<6} & {row[1]:<6} & {row[2]:<12.4f} & {row[3]:<12.4f} & {row[4]:<12.2f} & {row[5]:<12.2f} \\\\')
 

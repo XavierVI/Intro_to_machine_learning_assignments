@@ -1,7 +1,6 @@
 from data_generator import make_classification
 import  matplotlib.pyplot as plt
 
-
 d = 2
 n = 100
 u = 5

@@ -38,7 +38,7 @@ class LinearSCV:
                 # 
                 y_hat = self.decision_function(xi)
                 # Compute the hinge loss of a single sample
-                sample_loss = np.max(0, 1 - target * y_hat)
+                sample_loss = max(0, 1 - target * y_hat)
                 sample_loss_mean += sample_loss
 
                 # computing the gradient of the sample loss

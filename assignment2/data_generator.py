@@ -5,12 +5,11 @@ import matplotlib.pyplot as plt
 def make_classification(d, n, u=5, threshold=None, random_state=1, debug=False):
     """
     This function generates a set of points in a
-    'd' dimensional real space. Each point will lie in
+    'd' dimensional space. Each point will lie in
     the boundary [-u, u] in each direction of the space.
 
-    this functions returns the data points and labels in a single
-    2D array, and it returns the normal vector used to define the
-    hyperplane.
+    This function returns the data points and labels in a single
+    2D array.
 
     d: the dimension of the space
     
@@ -37,22 +36,12 @@ def make_classification(d, n, u=5, threshold=None, random_state=1, debug=False):
     # uses the L2 norm by default
     normal_vector_norm = np.linalg.norm(normal_vector)
 
-    # if a threshold wasn't given, will use 1 / ||a|| as the threshold
+    # if a threshold wasn't given, use 1 / ||normal_vector|| as the threshold
     if threshold == None:
         threshold = 1 / normal_vector_norm
 
-    # uniform set of joint angles
-    data_points = rng.uniform(
-        low=-u,  # lower bound
-        high=u,  # upper bound
-        # Generate a (n x d) array
-        size=(n, d)
-    )
-
     valid_points = []
 
-
-    # while loop to fill in the data for removed points
     while(len(valid_points) < n):
         # print(len(valid_points))
         num_needed = n - len(valid_points)
@@ -61,7 +50,6 @@ def make_classification(d, n, u=5, threshold=None, random_state=1, debug=False):
         new_points = rng.uniform(-u, u, size=(num_needed, d))
         # computing the distances between each point and our line
         distances = np.dot(new_points, normal_vector) / normal_vector_norm
-        # print(distances)
 
         # removing points on the line
         points_near_line = np.abs(distances) > threshold
@@ -76,4 +64,26 @@ def make_classification(d, n, u=5, threshold=None, random_state=1, debug=False):
     data = np.column_stack((data_points, labels))
 
     return data
+
+random_state = 1
+
+# generating data to show how each model scales with n = 1000 and d increasing
+ds = [10, 50, 100, 500]
+n = 1000
+u = 5
+
+for d in ds:
+    data = make_classification(d, n, u, random_state=random_state)
+    np.savetxt(f"./data/data_d{d}_n{n}_u{u}.csv", data, delimiter=",")
+
+
+# generating data to show how each model scales with d = 50 and n increasing
+d = 50
+ns = [100, 500, 1000, 10_000]
+u = 5
+
+for n in ns:
+    data = make_classification(d, n, u, random_state=random_state)
+    np.savetxt(f"./data/data_d{d}_n{n}_u{u}.csv", data, delimiter=",")
+
 

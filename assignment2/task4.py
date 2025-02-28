@@ -6,7 +6,9 @@ import os
 import time
 
 """
-Read the scikit-learn documentation for SVMs. We are going to investigate the performance of
+Task 4 instructions:
+
+- Read the scikit-learn documentation for SVMs. We are going to investigate the performance of
 solving primal and dual problems in linear classification.
 
 - You may use the same datasets generated in the
@@ -41,11 +43,6 @@ dual_model = LinearSVC(
 test_size = 0.3
 data_dir = os.path.join(os.curdir, 'data')
 table = []
-primal_time_costs = []
-dual_time_costs = []
-primal_accuracies = []
-dual_accuracies = []
-scale_combinations = []
 
 for file in os.listdir(data_dir):
     # loading the dataset and splitting the data using scikit learn
@@ -64,24 +61,19 @@ for file in os.listdir(data_dir):
     primal_model.fit(X_train, y_train)
     end = time.time()
     primal_time_cost = end - start
-    primal_time_costs.append(primal_time_cost)
 
     start = time.time()
     dual_model.fit(X_train, y_train)
     end = time.time()
     dual_time_cost = end - start
-    dual_time_costs.append(dual_time_cost)
 
     # making predictions and calculating the accuracy for each model
     primal_predictions = primal_model.predict(X_test)
     primal_accuracy = np.mean(primal_predictions == y_test) * 100
-    primal_accuracies.append(primal_accuracy)
 
     dual_predictions = dual_model.predict(X_test)
     dual_accuracy = np.mean(dual_predictions == y_test) * 100
-    dual_accuracies.append(dual_accuracy)
     
-    scale_combinations.append(f'd={d}, n={n}')
     table.append([d, n, primal_time_cost, dual_time_cost,
                  primal_accuracy, dual_accuracy])
 
@@ -89,11 +81,7 @@ for file in os.listdir(data_dir):
 # sort the table
 table = sorted(table, key=lambda x: (x[0], x[1]))
 
-# printing out the data as a table
-header = f'{"Scale":<10} | {"Primal Time":<10} | {"Dual Time":<10} | {"Primal Acc":<10} | {"Dual Acc":<10}'
-print(header)
-print('-' * len(header))
-
+# printing out the data as a table (formatted to be copied and pasted into OverLeaf)
 for row in table:
-    print(f'{row[0]:<6} & {row[1]:<6} & {row[2]:<12.4f} & {row[3]:<12.4f} & {row[4]:<12.2f} & {row[5]:<12.2f} \\\\')
+    print(f'{row[0]} & {row[1]} & {row[2]:<.3f} & {row[3]:<.3f} & {row[4]:<.2f} & {row[5]:<.2f} \\\\')
 

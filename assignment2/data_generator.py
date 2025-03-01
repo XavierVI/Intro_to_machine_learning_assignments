@@ -1,5 +1,5 @@
 import numpy as np
-
+import os
 
 def make_classification(d, n, u=5, threshold=None, random_state=1, debug=False):
     """
@@ -71,6 +71,9 @@ def main():
     ds = [10, 50, 100, 500]
     n = 1000
     u = 5
+
+    if not os.path.isdir('./data'):
+        os.mkdir('./data')
 
     for d in ds:
         data = make_classification(d, n, u, random_state=random_state)

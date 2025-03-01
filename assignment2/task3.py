@@ -20,11 +20,7 @@ however the time costs should be obviously different.
 This can be controlled by using the same random seed (see textbook).
 """
 
-d = 10
-n = 100
-u = 5
 random_state = 1
-
 model = LinearSCV(random_state=random_state)
 test_size = 0.3
 data_dir = os.path.join(os.curdir, 'data')

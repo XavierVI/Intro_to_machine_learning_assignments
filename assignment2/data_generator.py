@@ -69,26 +69,19 @@ def main():
 
     # generating data to show how each model scales with n = 1000 and d increasing
     ds = [10, 50, 100, 500]
-    n = 1000
+    ns = [100, 500, 1000, 10_000]
     u = 5
 
     if not os.path.isdir('./data'):
         os.mkdir('./data')
 
     for d in ds:
-        data = make_classification(d, n, u, random_state=random_state)
-        np.savetxt(f"./data/data_d{d}_n{n}_u{u}.csv", data, delimiter=",")
-
-
-    # generating data to show how each model scales with d = 50 and n increasing
-    d = 50
-    ns = [100, 500, 1000, 10_000]
-    u = 5
-
-    for n in ns:
-        data = make_classification(d, n, u, random_state=random_state)
-        np.savetxt(f"./data/data_d{d}_n{n}_u{u}.csv", data, delimiter=",")
-
+        for n in ns:
+            if d > n:
+                continue
+            
+            data = make_classification(d, n, u, random_state=random_state)
+            np.savetxt(f"./data/data_d{d}_n{n}_u{u}.csv", data, delimiter=",")
 
 if __name__ == "__main__":
     main()

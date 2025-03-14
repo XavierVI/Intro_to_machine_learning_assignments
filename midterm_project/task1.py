@@ -39,14 +39,7 @@ class RegressionTree:
         pass
 
     def fit(self, X, y):
-        data = np.column_stack((X, y))
-        np.sort(data)
-        X = data[:, 0:-1]
-        y = data[:, -1]
         num_of_features = X.size[1]
-
-        # index of the feature
-        feature_idx = 0
         
         # initialize the root node
         node = BST()
@@ -56,8 +49,7 @@ class RegressionTree:
         # add root node to the queue
         node_queue.append({
             'node': node,
-            'min_idx': 1, # ignore end point
-            'max_idx': -1, # -1 -> last index of X
+            'mask': np.array([True] * X.size[0]),
             'feature': 0
         })
 
@@ -65,13 +57,10 @@ class RegressionTree:
         while len(node_queue) > 0:
             # get a node from the queue
             node_dict = node_queue.pop(0)
+            feature_idx = node_dict['feature']
             # compute the index which has the lowest
             # sum of squares value (excluding end points)
-            sample_idx = np.argmin(
-                self.sum_of_squares(
-                    y[node_dict['min_idx'] : node_dict['max_idx']]
-                )
-            )
+            sample_idx = np.argmin(self.sum_of_squares(y[node_dict['mask']]))
             
             # use the index to split the data at X[idx]
             # this is also where we set the condition of the node
@@ -80,22 +69,19 @@ class RegressionTree:
             # create the children for the node
             node.left_child = BST()
             node.right_child = BST()
-            feature = 0 if feature_idx + 1 > num_of_features else feature_idx + 1
+            next_feature = 0 if feature_idx + 1 > num_of_features else feature_idx + 1
+            
             # add them to the queue
             node_queue.append({
                 'node': node.left_child,
-                'min_idx': node_dict['min_idx'],
-                'max_idx': sample_idx,
-                'feature': feature
+                'mask': X[:, feature_idx] < X[sample_idx, feature_idx],
+                'feature': next_feature
             })
             node_queue.append({
                 'node': node.right_child,
-                'min_idx': sample_idx,
-                'max_idx': node_dict['max_idx'],
-                'feature': feature
+                'mask': X[:, feature_idx] >= X[sample_idx, feature_idx],
+                'feature': next_feature
             })
-
-
 
 
     def sum_of_squares(self, y):

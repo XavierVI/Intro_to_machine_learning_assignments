@@ -31,8 +31,9 @@ class BST:
 
 
 class RegressionTree:
-    def __init__(self, max_height: int, leaf_size: int):
-        pass
+    def __init__(self, max_height: int=None, leaf_size: int=None):
+        self.max_height = max_height
+        self.leaf_size = leaf_size
 
 
     def decision_path(X):

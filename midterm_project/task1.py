@@ -54,14 +54,18 @@ class RegressionTree:
             'feature': 0
         })
 
-
+        # iterate while the queue isn't empty
         while len(node_queue) > 0:
             # get a node from the queue
             node_dict = node_queue.pop(0)
             feature_idx = node_dict['feature']
+            X_local = X['mask']
+            y_local = y['mask']
             # compute the index which has the lowest
-            # sum of squares value (excluding end points)
-            sample_idx = np.argmin(self.sum_of_squares(y[node_dict['mask']]))
+            # sum of squares value
+            sample_idx = self.get_best_split(
+                X_local, y_local, feature_idx
+            )
             
             # use the index to split the data at X[idx]
             # this is also where we set the condition of the node
@@ -85,7 +89,48 @@ class RegressionTree:
             })
 
 
+    def get_boolean_masks(self, X, sample_idx, feature_idx):
+        """
+        This function is used to calculate the boolean masks to split 
+        the given data at the data point X[sample_idx, feature_idx].
+
+        Samples are compared only along the given feature index.
+
+        @return: two boolean masks.
+        """
+        left_bool_mask = X[:, feature_idx] < X[sample_idx, feature_idx]
+        right_bool_mask = X[:, feature_idx] > X[sample_idx, feature_idx]
+        return left_bool_mask, right_bool_mask
+
+
+    def get_best_split(self, X, y, feature_idx):
+        left_bool_mask, right_bool_mask = \
+            self.get_boolean_masks(X, 1, feature_idx)
+        best_sample_idx = 1
+        # best sum of squares error
+        best_sse = self.sum_of_squares(y[left_bool_mask]) + \
+                   self.sum_of_squares(y[right_bool_mask])
+        for sample_idx in range(0, X.shape[0] - 1):
+            left_bool_mask, right_bool_mask = self.get_boolean_masks(
+                X, sample_idx, feature_idx
+            )
+            sse = self.sum_of_squares(y[left_bool_mask]) + \
+                  self.sum_of_squares(y[right_bool_mask])
+
+            if sse < best_sse:
+                best_sample_idx = sample_idx
+                best_sse = sse
+
+        return best_sample_idx
+
+
     def sum_of_squares(self, y):
+        """
+        This function computes the sum of squares.
+
+        @args:
+        - y: an array of labels
+        """
         return y.size[0] *  np.std(y)
 
     def stopping_criteria(self):

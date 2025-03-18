@@ -77,6 +77,9 @@ class RegressionTree:
     def decision_path(X):
         pass
 
+    def predict(X):
+        pass
+
     def fit(self, X, y):
         num_of_features = X.size[1]
         
@@ -94,7 +97,6 @@ class RegressionTree:
             'depth': 0,
             'mask': np.array([True] * X.size[0]),
             'impurity': sse,
-            'feature': 0
         })
 
         # iterate while the queue isn't empty
@@ -105,7 +107,6 @@ class RegressionTree:
             depth = node_dict['depth']
             num_of_leaves = self.bst.get_num_of_leaves()
             impurity = node_dict['impurity']
-            feature_idx = node_dict['feature']
             X_local = X[node_dict['mask']]
             y_local = y[node_dict['mask']]
 
@@ -119,14 +120,23 @@ class RegressionTree:
 
             # compute the index which has the lowest
             # sum of squares value
-            sample_idx, left_sse, right_sse = \
-                self.get_best_split(X_local, y_local, feature_idx)
+            best_feature_idx = 0
+            best_sample_idx, best_left_sse, best_right_sse = \
+                self.get_best_split(X_local, y_local, best_feature_idx)
+
+            # iterate over all features to find the best split
+            for feature_idx in range(1, num_of_features):
+                sample_idx, left_sse, right_sse = \
+                    self.get_best_split(X_local, y_local, best_feature_idx)
+                if best_left_sse + best_right_sse > left_sse + right_sse:
+                    best_sample_idx = sample_idx
+                    best_left_sse = left_sse
+                    best_right_sse = right_sse
+                    best_feature_idx = feature_idx
             
             # use the index which splits the data at X[sample_idx, feature_idx]
             # to set the condition property of the node
-            curr_node.condition = lambda x: x <= X[sample_idx, feature_idx]
-
-            next_feature = 0 if feature_idx + 1 > num_of_features else feature_idx + 1
+            curr_node.condition = lambda x: x <= X[best_sample_idx, best_feature_idx]
 
             if num_of_leaves + 1 <= self.leaf_size:
                 # create a node and set it as the left child of curr_node
@@ -135,10 +145,9 @@ class RegressionTree:
                 node_queue.append({
                     'node': curr_node.left_child,
                     'depth': depth + 1,
-                    'mask': (X[:, feature_idx] < X_local[sample_idx, feature_idx])
+                    'mask': (X[:, best_feature_idx] < X_local[best_sample_idx, best_feature_idx])
                             & node_dict['mask'],
-                    'impurity': left_sse,
-                    'feature': next_feature
+                    'impurity': best_left_sse,
                 })
 
             if num_of_leaves + 2 <= self.leaf_size:
@@ -148,10 +157,9 @@ class RegressionTree:
                 node_queue.append({
                     'node': curr_node.right_child,
                     'depth': depth + 1,
-                    'mask': (X[:, feature_idx] > X_local[sample_idx, feature_idx]) 
+                    'mask': (X[:, best_feature_idx] > X_local[best_sample_idx, best_feature_idx]) 
                             & node_dict['mask'],
-                    'impurity': right_sse,
-                    'feature': next_feature
+                    'impurity': best_right_sse,
                 })
 
 
@@ -217,14 +225,6 @@ class RegressionTree:
         - y: an array of labels
         """
         return y.size[0] *  np.var(y)
-
-    def stopping_criteria(self):
-        """
-        This function will calculate if we should stop building
-        the tree based on the tree's current structure and the given
-        hyperparameters.
-        """
-        return False
 
 
 

@@ -1,22 +1,18 @@
 import numpy as np
 
 class Node:
-    def __init__(
-        self,
-        left_child=None, right_child=None,
-        condition=None, value: float=None):
+    def __init__(self, left_child=None, right_child=None):
         """
         @args:
-        - condition: a boolean expression associated with the node.
-        This condition should be used to determine how the data is split.
+        - condition_value: the 
         """
         self.left_child = left_child
         self.right_child = right_child
         self.feature = None
-        self.condition_value = condition
-        self.pred_value = value
+        self.condition_value = None
+        self.pred_value = None
     
-    def condition(self, x): 
+    def eval_condition(self, x): 
         return x[self.feature] >= self.condition_value
 
     def is_leaf(self):
@@ -32,9 +28,6 @@ class Node:
 class BST:
     """
     This class is a binary search tree.
-
-    @args:
-    - condition: a boolean expression associated with the node
     """
     def __init__(self):
         self.root_node = Node()
@@ -81,7 +74,7 @@ class RegressionTree:
         node = self.bst.root_node
         # iterate until we get a leaf node
         while not node.is_leaf():
-            if node.condition(x):
+            if node.eval_condition(x):
                 print(f'x[{node.feature}] >= {node.condition_value}')
                 node = node.right_child
 
@@ -96,7 +89,7 @@ class RegressionTree:
 
         # iterate until we get a leaf node
         while not node.is_leaf():
-            if node.condition(x):
+            if node.eval_condition(x):
                 node = node.right_child
 
             else:
@@ -162,32 +155,44 @@ class RegressionTree:
             
             # use the index which splits the data at X[sample_idx, feature_idx]
             # to set the condition property of the node
-            curr_node.condition_value = X[best_sample_idx, best_feature_idx]
+            curr_node.condition_value = X_local[best_sample_idx, best_feature_idx]
             curr_node.feature = best_feature_idx
 
-            if self.leaf_size == None or (self.leaf_size != None and num_of_leaves <= self.leaf_size):
+            if self.leaf_size == None or \
+                (self.leaf_size != None and num_of_leaves <= self.leaf_size):
                 # create a node and set it as the left child of curr_node
                 curr_node.left_child = Node()
-                # add left_child to the queue
-                node_queue.append({
-                    'node': curr_node.left_child,
-                    'depth': depth + 1,
-                    'mask': (X[:, best_feature_idx] < X_local[best_sample_idx, best_feature_idx])
-                            & node_dict['mask'],
-                    'impurity': best_left_sse,
-                })
+                left_split = (X[:, best_feature_idx] < \
+                              X_local[best_sample_idx, best_feature_idx]) \
+                            & node_dict['mask']
 
-            if self.leaf_size == None or (self.leaf_size != None and num_of_leaves + 1 <= self.leaf_size):
+                # if the dataset will not be empty
+                if np.any(left_split):
+                    # add left_child to the queue
+                    node_queue.append({
+                        'node': curr_node.left_child,
+                        'depth': depth + 1,
+                        'mask': left_split,
+                        'impurity': best_left_sse,
+                    })
+
+            if self.leaf_size == None or \
+                (self.leaf_size != None and num_of_leaves + 1 <= self.leaf_size):
                 # create a node and set it as the right child of curr_node
                 curr_node.right_child = Node()
-                # add right_child to the queue
-                node_queue.append({
-                    'node': curr_node.right_child,
-                    'depth': depth + 1,
-                    'mask': (X[:, best_feature_idx] > X_local[best_sample_idx, best_feature_idx]) 
-                            & node_dict['mask'],
-                    'impurity': best_right_sse,
-                })
+                right_split = (X[:, best_feature_idx] > \
+                               X_local[best_sample_idx, best_feature_idx]) \
+                                & node_dict['mask']
+                
+                # if the dataset will not be empty
+                if np.any(right_split):
+                    # add right_child to the queue
+                    node_queue.append({
+                        'node': curr_node.right_child,
+                        'depth': depth + 1,
+                        'mask': right_split,
+                        'impurity': best_right_sse,
+                    })
 
 
     def get_boolean_masks(self, X, sample_idx, feature_idx):

@@ -51,16 +51,16 @@ class BST:
     def get_num_of_leaves(self):
         num_of_leaves = 0
         node_stack = []
-        node_stack.push(self.root_node)
+        node_stack.append(self.root_node)
 
         while len(node_stack) > 0:
             node = node_stack.pop()
 
             if node.left_child != None:
-                node_stack.push(node.left_child)
+                node_stack.append(node.left_child)
 
             if node.right_child != None:
-                node_stack.push(node.right_child)
+                node_stack.append(node.right_child)
 
             if node.left_child == None and node.right_child == None:
                 num_of_leaves += 1
@@ -79,15 +79,14 @@ class RegressionTree:
 
     def decision_path(self, x):
         node = self.bst.root_node
-
         # iterate until we get a leaf node
         while not node.is_leaf():
             if node.condition(x):
-                print(f'x[{self.node.feature}] >= {self.node.condition_value}')
+                print(f'x[{node.feature}] >= {node.condition_value}')
                 node = node.right_child
 
             else:
-                print(f'x[{self.node.feature}] < {self.node.condition_value}')
+                print(f'x[{node.feature}] < {node.condition_value}')
                 node = node.left_child
 
         print(f'x == {node.pred_value}')
@@ -106,7 +105,7 @@ class RegressionTree:
         return node.pred_value
 
     def fit(self, X, y):
-        num_of_features = X.size[1]
+        num_of_features = X.shape[1]
         
         # start at the root node
         node = self.bst.root_node
@@ -120,9 +119,10 @@ class RegressionTree:
         node_queue.append({
             'node': node,
             'depth': 0,
-            'mask': np.array([True] * X.size[0]),
+            'mask': np.array([True] * X.shape[0]),
             'impurity': sse,
         })
+        print(f'Length of queue: {len(node_queue)}')
 
         # iterate while the queue isn't empty
         while len(node_queue) > 0:
@@ -139,7 +139,7 @@ class RegressionTree:
             if X_local.shape[0] < 3 or impurity == 0 or \
                 self.can_add_node(num_of_leaves, depth):
                 # set the value property
-                curr_node.pred_value = np.mean(y_local)
+                curr_node.pred_value = np.mean(y_local, axis=0)
                 # continue to the next iteration
                 continue
 
@@ -165,7 +165,7 @@ class RegressionTree:
             curr_node.condition_value = X[best_sample_idx, best_feature_idx]
             curr_node.feature = best_feature_idx
 
-            if num_of_leaves + 1 <= self.leaf_size:
+            if self.leaf_size == None or (self.leaf_size != None and num_of_leaves <= self.leaf_size):
                 # create a node and set it as the left child of curr_node
                 curr_node.left_child = Node()
                 # add left_child to the queue
@@ -177,7 +177,7 @@ class RegressionTree:
                     'impurity': best_left_sse,
                 })
 
-            if num_of_leaves + 2 <= self.leaf_size:
+            if self.leaf_size == None or (self.leaf_size != None and num_of_leaves + 1 <= self.leaf_size):
                 # create a node and set it as the right child of curr_node
                 curr_node.right_child = Node()
                 # add right_child to the queue
@@ -251,7 +251,7 @@ class RegressionTree:
         @args:
         - y: an array of labels
         """
-        return y.size[0] *  np.var(y)
+        return y.shape[0] *  np.var(y)
 
 
 

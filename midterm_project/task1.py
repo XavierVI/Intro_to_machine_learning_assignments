@@ -4,20 +4,23 @@ class Node:
     def __init__(
         self,
         left_child=None, right_child=None,
-        condition: lambda: bool=None, value: float=None):
+        condition=None, value: float=None):
         """
         @args:
         - condition: a boolean expression associated with the node.
         This condition should be used to determine how the data is split.
         """
-        self.condition = None
         self.left_child = left_child
         self.right_child = right_child
-        self.condition = condition
-        self.value = value
+        self.feature = None
+        self.condition_value = condition
+        self.pred_value = value
     
-    def set_condition(self, exp: lambda: bool):
-        self.condition = exp
+    def condition(self, x): 
+        return x[self.feature] >= self.condition_value
+
+    def is_leaf(self):
+        return self.left_child == None and self.right_child == None
 
     def set_left_child(self, node):
         self.left_child = node
@@ -74,11 +77,33 @@ class RegressionTree:
         self.bst = BST()
 
 
-    def decision_path(X):
-        pass
+    def decision_path(self, x):
+        node = self.bst.root_node
 
-    def predict(X):
-        pass
+        # iterate until we get a leaf node
+        while not node.is_leaf():
+            if node.condition(x):
+                print(f'x[{self.node.feature}] >= {self.node.condition_value}')
+                node = node.right_child
+
+            else:
+                print(f'x[{self.node.feature}] < {self.node.condition_value}')
+                node = node.left_child
+
+        print(f'x == {node.pred_value}')
+
+    def predict(self, x):
+        node = self.bst.root_node
+
+        # iterate until we get a leaf node
+        while not node.is_leaf():
+            if node.condition(x):
+                node = node.right_child
+
+            else:
+                node = node.left_child
+
+        return node.pred_value
 
     def fit(self, X, y):
         num_of_features = X.size[1]
@@ -114,7 +139,7 @@ class RegressionTree:
             if X_local.shape[0] < 3 or impurity == 0 or \
                 self.can_add_node(num_of_leaves, depth):
                 # set the value property
-                curr_node.value = np.mean(y_local)
+                curr_node.pred_value = np.mean(y_local)
                 # continue to the next iteration
                 continue
 
@@ -128,6 +153,7 @@ class RegressionTree:
             for feature_idx in range(1, num_of_features):
                 sample_idx, left_sse, right_sse = \
                     self.get_best_split(X_local, y_local, best_feature_idx)
+                
                 if best_left_sse + best_right_sse > left_sse + right_sse:
                     best_sample_idx = sample_idx
                     best_left_sse = left_sse
@@ -136,7 +162,8 @@ class RegressionTree:
             
             # use the index which splits the data at X[sample_idx, feature_idx]
             # to set the condition property of the node
-            curr_node.condition = lambda x: x <= X[best_sample_idx, best_feature_idx]
+            curr_node.condition_value = X[best_sample_idx, best_feature_idx]
+            curr_node.feature = best_feature_idx
 
             if num_of_leaves + 1 <= self.leaf_size:
                 # create a node and set it as the left child of curr_node

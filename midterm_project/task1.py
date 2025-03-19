@@ -1,13 +1,14 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Node:
-    def __init__(self, left_child=None, right_child=None):
+    def __init__(self, left=None, right=None):
         """
         @args:
         - condition_value: the 
         """
-        self.left_child = left_child
-        self.right_child = right_child
+        self.left = left
+        self.right = right
         self.feature = None
         self.condition_value = None
         self.pred_value = None
@@ -16,13 +17,13 @@ class Node:
         return x[self.feature] >= self.condition_value
 
     def is_leaf(self):
-        return self.left_child == None and self.right_child == None
+        return self.left == None and self.right == None
 
     def set_left_child(self, node):
-        self.left_child = node
+        self.left = node
 
     def set_right_child(self, node):
-        self.right_child = node
+        self.right = node
     
 
 class BST:
@@ -37,8 +38,8 @@ class BST:
             return 0
 
         return 1 + max(
-            self.get_height(node.left_child),
-            self.get_height(node.right_child)
+            self.get_height(node.left),
+            self.get_height(node.right)
         )
 
     def get_num_of_leaves(self):
@@ -49,16 +50,68 @@ class BST:
         while len(node_stack) > 0:
             node = node_stack.pop()
 
-            if node.left_child != None:
-                node_stack.append(node.left_child)
+            if node.left != None:
+                node_stack.append(node.left)
 
-            if node.right_child != None:
-                node_stack.append(node.right_child)
+            if node.right != None:
+                node_stack.append(node.right)
 
-            if node.left_child == None and node.right_child == None:
+            if node.left == None and node.right == None:
                 num_of_leaves += 1
         
         return num_of_leaves
+
+    def plot_tree(self):
+        """
+        """
+        fig, ax = plt.subplots(figsize=(24, 12))
+        ax.set_axis_off()
+
+        node_positions = {}
+        self._assign_positions(
+            self.root_node, 0, 0, node_positions, level_spacing=0.5)
+
+        self._draw_tree(ax, self.root_node, node_positions)
+
+        plt.title("Regression Tree", fontsize=14)
+        plt.show()
+
+    def _assign_positions(self, node, x, y, node_positions, level_spacing):
+        """"""
+        if node:
+            node_positions[node] = (x, y)
+            if node.left:
+                self._assign_positions(
+                    node.left, x - level_spacing, y - 1, node_positions, level_spacing * 0.6)
+            if node.right:
+                self._assign_positions(
+                    node.right, x + level_spacing, y - 1, node_positions, level_spacing * 0.6)
+
+    def _draw_tree(self, ax, node, node_positions):
+        """"""
+        if node:
+            x, y = node_positions[node]
+            if node.pred_value != None:
+                ax.text(x, y, str(f'y == {node.pred_value:0.2f}'), ha="center", va="center", fontsize=10,
+                        bbox=dict(facecolor='lightblue', edgecolor='black', boxstyle='round,pad=1.0'))
+            
+            elif node.condition_value != None:
+                ax.text(x, y, str(f'x[{node.feature}] >= {node.condition_value:0.2f}'), ha="center", va="center", fontsize=10,
+                        bbox=dict(facecolor='lightblue', edgecolor='black', boxstyle='round,pad=1.0'))
+
+            else:
+                ax.text(x, y, str('None'), ha="center", va="center", fontsize=10,
+                        bbox=dict(facecolor='lightblue', edgecolor='black', boxstyle='round,pad=1.0'))
+
+            if node.left:
+                lx, ly = node_positions[node.left]
+                ax.plot([x, lx], [y, ly], 'k-', lw=1.0)
+                self._draw_tree(ax, node.left, node_positions)
+
+            if node.right:
+                rx, ry = node_positions[node.right]
+                ax.plot([x, rx], [y, ry], 'k-', lw=1.0)
+                self._draw_tree(ax, node.right, node_positions)
 
 
 
@@ -76,11 +129,11 @@ class RegressionTree:
         while not node.is_leaf():
             if node.eval_condition(x):
                 print(f'x[{node.feature}] >= {node.condition_value}')
-                node = node.right_child
+                node = node.right
 
             else:
                 print(f'x[{node.feature}] < {node.condition_value}')
-                node = node.left_child
+                node = node.left
 
         print(f'x == {node.pred_value}')
 
@@ -90,10 +143,10 @@ class RegressionTree:
         # iterate until we get a leaf node
         while not node.is_leaf():
             if node.eval_condition(x):
-                node = node.right_child
+                node = node.right
 
             else:
-                node = node.left_child
+                node = node.left
 
         return node.pred_value
 
@@ -115,7 +168,6 @@ class RegressionTree:
             'mask': np.array([True] * X.shape[0]),
             'impurity': sse,
         })
-        print(f'Length of queue: {len(node_queue)}')
 
         # iterate while the queue isn't empty
         while len(node_queue) > 0:
@@ -129,7 +181,7 @@ class RegressionTree:
             y_local = y[node_dict['mask']]
 
             # determine if this node should be a leaf
-            if X_local.shape[0] < 3 or impurity == 0 or \
+            if X_local.shape[0] == 1 or impurity == 0 or \
                 self.can_add_node(num_of_leaves, depth):
                 # set the value property
                 curr_node.pred_value = np.mean(y_local, axis=0)
@@ -161,38 +213,46 @@ class RegressionTree:
             if self.leaf_size == None or \
                 (self.leaf_size != None and num_of_leaves <= self.leaf_size):
                 # create a node and set it as the left child of curr_node
-                curr_node.left_child = Node()
+                curr_node.left = Node()
                 left_split = (X[:, best_feature_idx] < \
                               X_local[best_sample_idx, best_feature_idx]) \
                             & node_dict['mask']
 
                 # if the dataset will not be empty
                 if np.any(left_split):
-                    # add left_child to the queue
+                    # add left to the queue
                     node_queue.append({
-                        'node': curr_node.left_child,
+                        'node': curr_node.left,
                         'depth': depth + 1,
                         'mask': left_split,
                         'impurity': best_left_sse,
                     })
+                
+                else:
+                    curr_node.left.pred_value = np.mean(y_local, axis=0)
+
 
             if self.leaf_size == None or \
                 (self.leaf_size != None and num_of_leaves + 1 <= self.leaf_size):
                 # create a node and set it as the right child of curr_node
-                curr_node.right_child = Node()
+                curr_node.right = Node()
                 right_split = (X[:, best_feature_idx] > \
                                X_local[best_sample_idx, best_feature_idx]) \
                                 & node_dict['mask']
                 
                 # if the dataset will not be empty
                 if np.any(right_split):
-                    # add right_child to the queue
+                    # add right to the queue
                     node_queue.append({
-                        'node': curr_node.right_child,
+                        'node': curr_node.right,
                         'depth': depth + 1,
                         'mask': right_split,
                         'impurity': best_right_sse,
                     })
+
+                else:
+                    curr_node.right.pred_value = np.mean(y_local, axis=0)
+                
 
 
     def get_boolean_masks(self, X, sample_idx, feature_idx):

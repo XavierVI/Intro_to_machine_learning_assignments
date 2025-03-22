@@ -197,7 +197,7 @@ class RegressionTree:
             # iterate over all features to find the best split
             for feature_idx in range(1, num_of_features):
                 sample_idx, left_sse, right_sse = \
-                    self.get_best_split(X_local, y_local, best_feature_idx)
+                    self.get_best_split(X_local, y_local, feature_idx)
                 
                 if best_left_sse + best_right_sse > left_sse + right_sse:
                     best_sample_idx = sample_idx

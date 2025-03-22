@@ -210,48 +210,43 @@ class RegressionTree:
             curr_node.condition_value = X_local[best_sample_idx, best_feature_idx]
             curr_node.feature = best_feature_idx
 
-            if self.leaf_size == None or \
-                (self.leaf_size != None and num_of_leaves <= self.leaf_size):
-                # create a node and set it as the left child of curr_node
-                curr_node.left = Node()
-                left_split = (X[:, best_feature_idx] < \
-                              X_local[best_sample_idx, best_feature_idx]) \
+            # create a node and set it as the left child of curr_node
+            curr_node.left = Node()
+            left_split = (X[:, best_feature_idx] < \
+                            X_local[best_sample_idx, best_feature_idx]) \
+                        & node_dict['mask']
+
+            # if the dataset will not be empty
+            if np.any(left_split):
+                # add left to the queue
+                node_queue.append({
+                    'node': curr_node.left,
+                    'depth': depth + 1,
+                    'mask': left_split,
+                    'impurity': best_left_sse,
+                })
+            
+            else:
+                curr_node.left.pred_value = np.mean(y_local, axis=0)
+
+            # create a node and set it as the right child of curr_node
+            curr_node.right = Node()
+            right_split = (X[:, best_feature_idx] > \
+                            X_local[best_sample_idx, best_feature_idx]) \
                             & node_dict['mask']
+            
+            # if the dataset will not be empty
+            if np.any(right_split):
+                # add right to the queue
+                node_queue.append({
+                    'node': curr_node.right,
+                    'depth': depth + 1,
+                    'mask': right_split,
+                    'impurity': best_right_sse,
+                })
 
-                # if the dataset will not be empty
-                if np.any(left_split):
-                    # add left to the queue
-                    node_queue.append({
-                        'node': curr_node.left,
-                        'depth': depth + 1,
-                        'mask': left_split,
-                        'impurity': best_left_sse,
-                    })
-                
-                else:
-                    curr_node.left.pred_value = np.mean(y_local, axis=0)
-
-
-            if self.leaf_size == None or \
-                (self.leaf_size != None and num_of_leaves + 1 <= self.leaf_size):
-                # create a node and set it as the right child of curr_node
-                curr_node.right = Node()
-                right_split = (X[:, best_feature_idx] > \
-                               X_local[best_sample_idx, best_feature_idx]) \
-                                & node_dict['mask']
-                
-                # if the dataset will not be empty
-                if np.any(right_split):
-                    # add right to the queue
-                    node_queue.append({
-                        'node': curr_node.right,
-                        'depth': depth + 1,
-                        'mask': right_split,
-                        'impurity': best_right_sse,
-                    })
-
-                else:
-                    curr_node.right.pred_value = np.mean(y_local, axis=0)
+            else:
+                curr_node.right.pred_value = np.mean(y_local, axis=0)
                 
 
 

@@ -151,7 +151,11 @@ class RegressionTree:
         return node.pred_value
 
     def fit(self, X, y):
-        num_of_features = X.shape[1]
+        if len(X.shape) > 1:
+            num_of_features = X.shape[1]
+        else:
+            num_of_features = 1
+            X = X.reshape(-1, 1)
         
         # start at the root node
         node = self.bst.root_node

@@ -3,15 +3,12 @@ import matplotlib.pyplot as plt
 
 class Node:
     def __init__(self, left=None, right=None):
-        """
-        @args:
-        - condition_value: the 
-        """
         self.left = left
         self.right = right
         self.feature = None
         self.condition_value = None
         self.pred_value = None
+        self.impurity = -1
     
     def eval_condition(self, x): 
         return x[self.feature] >= self.condition_value
@@ -92,11 +89,11 @@ class BST:
         if node:
             x, y = node_positions[node]
             if node.pred_value != None:
-                ax.text(x, y, str(f'y == {node.pred_value:0.2f}'), ha="center", va="center", fontsize=10,
+                ax.text(x, y, str(f'y == {node.pred_value:0.2f}\nImpurity == {node.impurity:0.2f}'), ha="center", va="center", fontsize=10,
                         bbox=dict(facecolor='lightblue', edgecolor='black', boxstyle='round,pad=1.0'))
             
             elif node.condition_value != None:
-                ax.text(x, y, str(f'x[{node.feature}] >= {node.condition_value:0.2f}'), ha="center", va="center", fontsize=10,
+                ax.text(x, y, str(f'x[{node.feature}] >= {node.condition_value:0.2f}\nImpurity == {node.impurity:0.2f}'), ha="center", va="center", fontsize=10,
                         bbox=dict(facecolor='lightblue', edgecolor='black', boxstyle='round,pad=1.0'))
 
             else:
@@ -189,30 +186,19 @@ class RegressionTree:
                 self.can_add_node(num_of_leaves, depth):
                 # set the value property
                 curr_node.pred_value = np.mean(y_local, axis=0)
+                curr_node.impurity = impurity
                 # continue to the next iteration
                 continue
 
-            # compute the index which has the lowest
-            # sum of squares value
-            best_feature_idx = 0
-            best_sample_idx, best_left_sse, best_right_sse = \
-                self.get_best_split(X_local, y_local, best_feature_idx)
+            # get the best feature and sample to make a split
+            best_feature_idx, best_sample_idx, best_left_sse, best_right_sse = \
+                self.get_best_split(X_local, y_local)
 
-            # iterate over all features to find the best split
-            for feature_idx in range(1, num_of_features):
-                sample_idx, left_sse, right_sse = \
-                    self.get_best_split(X_local, y_local, feature_idx)
-                
-                if best_left_sse + best_right_sse > left_sse + right_sse:
-                    best_sample_idx = sample_idx
-                    best_left_sse = left_sse
-                    best_right_sse = right_sse
-                    best_feature_idx = feature_idx
-            
             # use the index which splits the data at X[sample_idx, feature_idx]
             # to set the condition property of the node
             curr_node.condition_value = X_local[best_sample_idx, best_feature_idx]
             curr_node.feature = best_feature_idx
+            curr_node.impurity = best_left_sse + best_right_sse
 
             # create a node and set it as the left child of curr_node
             curr_node.left = Node()
@@ -253,7 +239,6 @@ class RegressionTree:
                 curr_node.right.pred_value = np.mean(y_local, axis=0)
                 
 
-
     def get_boolean_masks(self, X, sample_idx, feature_idx):
         """
         This function is used to calculate the boolean masks to split 
@@ -267,17 +252,38 @@ class RegressionTree:
         right_bool_mask = X[:, feature_idx] > X[sample_idx, feature_idx]
         return left_bool_mask, right_bool_mask
 
+    def get_best_split(self, X, y):
+        # number of features
+        m = X.shape[1]
+        # compute the index which has the lowest
+        # sum of squares value
+        best_feature_idx = 0
+        best_sample_idx, best_left_sse, best_right_sse = \
+            self.get_best_split_sample(X, y, best_feature_idx)
 
-    def get_best_split(self, X, y, feature_idx):
+        # iterate over all features to find the best split
+        for feature_idx in range(1, m):
+            sample_idx, left_sse, right_sse = \
+                self.get_best_split_sample(X, y, feature_idx)
+
+            if best_left_sse + best_right_sse > left_sse + right_sse:
+                best_sample_idx = sample_idx
+                best_left_sse = left_sse
+                best_right_sse = right_sse
+                best_feature_idx = feature_idx
+
+        return (best_feature_idx, best_sample_idx, best_left_sse, best_right_sse)
+
+    def get_best_split_sample(self, X, y, feature_idx):
         left_bool_mask, right_bool_mask = \
-            self.get_boolean_masks(X, 1, feature_idx)
-        best_sample_idx = 1
+            self.get_boolean_masks(X, 0, feature_idx)
+        best_sample_idx = 0
 
         # best sum of squares error
         best_left_sse = self.sum_of_squares(y[left_bool_mask])
         best_right_sse = self.sum_of_squares(y[right_bool_mask])
 
-        for sample_idx in range(2, X.shape[0] - 1):
+        for sample_idx in range(1, X.shape[0]):
             left_bool_mask, right_bool_mask = self.get_boolean_masks(
                 X, sample_idx, feature_idx
             )
@@ -315,7 +321,11 @@ class RegressionTree:
         @args:
         - y: an array of labels
         """
+        if y.shape[0] <= 1:
+            return 0
+    
         return y.shape[0] *  np.var(y)
+        # return np.sum(np.square(y - np.mean(y)))
 
 
 

@@ -4,44 +4,6 @@ from sklearn.model_selection import train_test_split
 import time
 
 
-def print_table(data, headers=None, padding=2):
-    """
-    Prints data as a formatted table.
-
-    Args:
-        data (list of lists): The data to be printed. Each inner list represents a row.
-        headers (list, optional): A list of headers for the table. Defaults to None.
-        padding (int, optional): The amount of padding to add around each cell. Defaults to 2.
-    """
-
-    # If headers are provided, add them to the data
-    if headers:
-        data_to_print = np.row_stack((headers, data))
-    else:
-        data_to_print = data
-
-    # Calculate column widths
-    col_widths = [0] * len(data_to_print[0])
-    for row in data_to_print:
-        for i, cell in enumerate(row):
-            col_widths[i] = max(col_widths[i], len(str(cell)))
-
-    # Add padding to column widths
-    col_widths = [width + 2 * padding for width in col_widths]
-
-    # Print the table
-    for row in data_to_print:
-        formatted_row = ""
-        for i, cell in enumerate(row):
-            formatted_row += str(cell).ljust(col_widths[i])
-            if i + 1 == len(row):
-                formatted_row += '\\\\'
-            else:
-                formatted_row += ' & '
-
-        print(formatted_row)
-
-
 def next_state(x_1, x_2):
     y1 = 0.9*x_1 - 0.2*x_2
     y2 = 0.2*x_1 + 0.9*x_2
@@ -144,81 +106,58 @@ def main():
         model2_predictions.append(model2.predict(x))
     print(compute_mse(y_test, model1_predictions, model2_predictions))
 
-    # Evaluating trajectory quality
+    #### Evaluating performance on a trajectory
     trajectory_eval(model1, model2)
 
-    # Finding optimal parameters
+    #### Finding optimal parameters
+    leaf_sizes = [  None, 8, 16, 32]
+    max_heights = [  1, 4, 8, 12]
+    max_heights_table = []
+    leaf_sizes_table = []
     model1_mses = []
     model2_mses = []
     model1_training_time = []
     model2_training_time = []
-    leaf_sizes = [1, 2, 4, 6, 8, 10, 12, 14]
 
-    print('Leaf Sizes')
-    # training multiple different trees
-    for leaf_size in leaf_sizes:
-        model1 = RegressionTree(leaf_size=leaf_size)
-        model2 = RegressionTree(leaf_size=leaf_size)
-
-        model1_start = time.time()
-        model1.fit(X, y[:, 0])
-        model1_end = time.time()
-        model1_training_time.append(model1_end - model1_start)
-
-        model2_start = time.time()
-        model2.fit(X, y[:, 1])
-        model2_end = time.time()
-        model2_training_time.append(model2_end - model2_start)
-
-        model1_predictions, model2_predictions = make_predictions(
-            model1, model2, X)
-
-        model1_mse, model2_mse = compute_mse(
-            y, model1_predictions, model2_predictions)
-        model1_mses.append(model1_mse)
-        model2_mses.append(model2_mse)
-
-    headers = ["Leaf Size", "MSE", "Time Cost"]
-    x1_data = np.array([leaf_sizes, model1_mses, model1_training_time]).T
-    x2_data = np.array([leaf_sizes, model1_mses, model1_training_time]).T
-    print_table(x1_data, headers, padding=2)
-    print_table(x2_data, headers, padding=2)
-
-    model1_mses = []
-    model2_mses = []
-    model1_training_time = []
-    model2_training_time = []
-    max_heights = [1, 2, 3, 4, 5, 6, 7, 8]
-
-    print('Max Height')
-    # training multiple different trees
     for max_height in max_heights:
-        model1 = RegressionTree(max_height=max_height)
-        model2 = RegressionTree(max_height=max_height)
+        for leaf_size in leaf_sizes:
+            max_heights_table.append(max_height)
+            leaf_sizes_table.append(leaf_size)
+            model1 = RegressionTree(leaf_size=leaf_size, max_height=max_height)
+            model2 = RegressionTree(leaf_size=leaf_size, max_height=max_height)
 
-        model1_start = time.time()
-        model1.fit(X, y[:, 0])
-        model1_end = time.time()
-        model1_training_time.append(model1_end - model1_start)
+            # training two trees and saving the time cost
+            model1_start = time.time()
+            model1.fit(X, y[:, 0])
+            model1_end = time.time()
+            model1_training_time.append(model1_end - model1_start)
 
-        model2_start = time.time()
-        model2.fit(X, y[:, 1])
-        model2_end = time.time()
-        model2_training_time.append(model2_end - model2_start)
+            model2_start = time.time()
+            model2.fit(X, y[:, 1])
+            model2_end = time.time()
+            model2_training_time.append(model2_end - model2_start)
 
-        model1_predictions, model2_predictions = make_predictions(
-            model1, model2, X)
+            model1_predictions, model2_predictions = make_predictions(
+                model1, model2, X)
 
-        model1_mse, model2_mse = compute_mse(
-            y, model1_predictions, model2_predictions)
-        model1_mses.append(model1_mse)
-        model2_mses.append(model2_mse)
+            model1_mse, model2_mse = compute_mse(
+                y, model1_predictions, model2_predictions)
+            model1_mses.append(model1_mse)
+            model2_mses.append(model2_mse)
 
-    headers = ["Max Height", "MSE", "Time Cost"]
-    x1_data = np.array([leaf_sizes, model1_mses, model1_training_time]).T
-    x2_data = np.array([leaf_sizes, model1_mses, model1_training_time]).T
-    print_table(x1_data, headers, padding=2)
-    print_table(x2_data, headers, padding=2)
+    headers = ["Max Height", "Leaf Size", "MSE", "Time Cost"]
+    x1_data = np.array([max_heights_table, leaf_sizes_table, model1_mses, model1_training_time]).T
+    x2_data = np.array([max_heights_table, leaf_sizes_table, model2_mses, model2_training_time]).T
+    
+    # printing out the data as a table (formatted to be copied and pasted into OverLeaf)
+    for row in x1_data:
+        print(f'{row[0]} & {row[1]} & {row[2]:<.2f} & {row[3]:<.2f} \\\\')
+
+    print('=======================================================')
+
+    for row in x2_data:
+        print(f'{row[0]} & {row[1]} & {row[2]:<.2f} & {row[3]:<.2f} \\\\')
+    
 
 if __name__ == '__main__':
     main()

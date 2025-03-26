@@ -11,20 +11,18 @@ def func(x):
     is defined as the value of its variables (x and z in this case),
     we can say that the next state of the program only depends on x.
     That is, both x_{k+1} and z_{k+1} depend on x_k.
+
+    This mostly serves as a reference.
     """
-    xs = np.array([x])
-    zs = np.array([0])
     z = 0
     for _ in range(20):
         if x > 1:
             x = 0
         else:
             x += 0.2
-        xs = np.append(x)
         z = z + x
-        zs = np.append(z)
-
-    return np.column_stack((xs, zs))
+    
+    return (x, z)
 
 
 def create_dataset(num_of_samples):
@@ -84,7 +82,7 @@ def trajectory_eval(model1, model2):
     
     #### Plotting actual trajectory
     axes[0].plot(range(20), y[:, 0], '-xb')
-    # axes[0].plot(range(20), predictions_x1[:], '-xr')
+    axes[0].plot(range(20), predictions_x1[:], '-xr')
     axes[0].set_xlabel('Time')
     axes[0].set_ylabel('State Value (x)')
     axes[0].set_title('Plot of x trajectory')
@@ -93,17 +91,17 @@ def trajectory_eval(model1, model2):
 
     #### Plotting predicted trajectory
     axes[1].plot(range(20), y[:, 1], '-xb')
-    # axes[1].plot(range(20), predictions_x2[:], '-xr')
+    axes[1].plot(range(20), predictions_x2[:], '-xr')
     axes[1].set_xlabel('Time')
     axes[1].set_ylabel('State Value (z)')
     axes[1].set_title('Plot of z trajectory')
     axes[1].legend(['actual', 'predicted'])
     axes[1].grid(True)
-    plt.savefig(fname="task4b_trajectories", dpi=300)
-    #plt.show()
+    # plt.savefig(fname="task4b_trajectories", dpi=300)
+    plt.show()
 
 #### Generating training and testing data
-X, y = create_dataset(10)
+X, y = create_dataset(10_000)
 #print(X)
 #print(y)
 

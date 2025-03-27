@@ -3,44 +3,13 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-from matplotlib.colors import ListedColormap
-import matplotlib.pyplot as plt
-def plot_decision_regions(X, y, classifier, test_idx=None, resolution=0.02):
-    # setup marker generator and color map
-    markers = ('o', 's','^', 'v', '<')
-    colors = ('red', 'blue', 'lightgreen', 'gray', 'cyan')
-    cmap = ListedColormap(colors[:len(np.unique(y))])
-# plot the decision surface
-    x1_min, x1_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    x2_min, x2_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-    xx1, xx2 = np.meshgrid(np.arange(x1_min, x1_max, resolution),
-    np.arange(x2_min, x2_max, resolution))
-    lab = classifier.predict(np.array([xx1.ravel(), xx2.ravel()]).T)
-    lab = lab.reshape(xx1.shape)
-    plt.contourf(xx1, xx2, lab, alpha=0.3, cmap=cmap)
-    plt.xlim(xx1.min(), xx1.max())
-    plt.ylim(xx2.min(), xx2.max())
-    # plot class examples
-    for idx, cl in enumerate(np.unique(y)):
-        plt.scatter(x=X[y == cl, 0],
-        y=X[y == cl, 1],
-        alpha=0.8,
-        c=colors[idx],
-        marker=markers[idx],
-        label=f'Class {cl}',edgecolor='black')
-    # highlight test examples
-    if test_idx:
-    # plot all examples
-        X_test, y_test = X[test_idx, :], y[test_idx]
-        plt.scatter(X_test[:, 0], X_test[:, 1],
-        c='none', edgecolor='black', alpha=1.0,
-        linewidth=1, marker='o',
-        s=100, label='Test set')
 
 def trainspliter(perc):
     return 1 if random.random() < perc else 0
 
-def plotout(X, Y, tt):
+
+
+def plotout_gendata(X, Y, tt):
     print(len(X))
     for i in range(len(X)):
         if tt[i] == 1:
@@ -81,8 +50,11 @@ class Node:
         self.condition_value = None
         self.pred_value = None
 
-    def eval_condition(self, x):
-        return x[self.feature] >= self.condition_value
+    def eval_condition(self, x: np.ndarray):
+        if type(x) == np.ndarray:
+            return x[self.feature] >= self.condition_value
+        else:
+            return x >= self.condition_value
 
     def is_leaf(self):
         return self.left == None and self.right == None
@@ -129,6 +101,8 @@ class BST:
                 num_of_leaves += 1
 
         return num_of_leaves
+
+
 
     def plot_tree(self):
         """
@@ -190,6 +164,15 @@ class RegressionTree:
         self.height = 0
         self.bst = BST()
 
+    def plot_graph(self, X_inTrain, Y_inTrain, X_inTest):
+        for i in range(len(Y_inTrain)):
+            x = X_inTrain[i]
+            y = 0.8 * np.sin(x - 1)
+            plt.plot(x, y) #plot sine wave
+            plt.scatter(X_inTrain[i], Y_inTrain[i]) #
+            plt.plot(X_inTest[i], self.predict(X_inTest[i]), 'ro')
+        plt.show()
+
     def decision_path(self, x):
         node = self.bst.root_node
         # iterate until we get a leaf node
@@ -209,6 +192,7 @@ class RegressionTree:
 
         # iterate until we get a leaf node
         while not node.is_leaf():
+
             if node.eval_condition(x):
                 node = node.right
 
@@ -441,10 +425,7 @@ RT = RegressionTree(max_height= None, leaf_size= None)
 RegressionTree.fit(RT, X = X_train, y = y_train)
 
 BST.plot_tree(RT.bst)
-X_combined = np.vstack((X_train, X_test))
-y_combined = np.hstack((y_train, y_test))
-plot_decision_regions(X_combined, y_combined, classifier=RT,test_idx=range(105, 150))
-plt.xlabel('Random input variable data')
-plt.ylabel('determined output variable data')
-plt.legend(loc='upper left')
-plt.show()
+#X_combined = np.vstack((X_train, X_test))
+#y_combined = np.hstack((y_train, y_test))
+
+RT.plot_graph(X_train, y_train, X_test)

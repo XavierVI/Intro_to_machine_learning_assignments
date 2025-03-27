@@ -26,26 +26,30 @@ def func(x):
 
 
 def create_dataset(num_of_samples):
-    X_x = np.random.default_rng(1).uniform(
-        low=-3, high=3,  size=(num_of_samples, 1))
-    X_z = np.random.default_rng(1).uniform(
-        low=0, high=15, size=(num_of_samples, 1))
-    X = np.column_stack((X_x, X_z))
-    y = np.zeros((num_of_samples, 2))
+    x_values = np.random.default_rng(1).uniform(low=-3, high=3,  size=(num_of_samples,))
+    X = np.zeros((20*num_of_samples, 2))
+    y = np.zeros((20*num_of_samples, 2))
     
     # this for loop will compute
     # the next state based on x and z
-    for i, x in enumerate(X):
-        x_next = 0
-        z_next = 0
-        if x[0] > 1:
-            x_next = 0
-        else:
-            x_next = x[0] + 0.2
-        z_next = x[1] + x_next
-
-        y[i, 0] = x_next
-        y[i, 1] = z_next
+    for i, x in enumerate(x_values):
+        x_k = x
+        z_k = 0
+        for j in range(20):
+            # add the current state as an input
+            X[20*i+j, 0] = x_k
+            X[20*i+j, 1] = z_k
+            
+            # compute the next state
+            if x_k > 1:
+                x_k = 0
+            else:
+                x_k += 0.2
+            z_k += x_k
+            
+            # add the next state as a label
+            y[20*i+j, 0] = x_k
+            y[20*i+j, 1] = z_k
 
     return (X, y)
 
@@ -101,7 +105,7 @@ def trajectory_eval(model1, model2):
     plt.show()
 
 #### Generating training and testing data
-X, y = create_dataset(10_000)
+X, y = create_dataset(1000)
 #print(X)
 #print(y)
 
@@ -116,7 +120,7 @@ model2.fit(X_train, y_train[:, 1])
 
 x_predictions, z_predictions = make_predictions(model1, model2, X_test)
 
-print(f'MSE: {compute_mse(y_test, x_predictions, z_predictions)}')
+# print(f'MSE: {compute_mse(y_test, x_predictions, z_predictions)}')
 
 
 #### Plotting trajectories

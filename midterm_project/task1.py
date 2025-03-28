@@ -179,14 +179,13 @@ class RegressionTree:
             node_dict = node_queue.pop(0)
             curr_node = node_dict['node']
             depth = node_dict['depth']
-            num_of_leaves = self.bst.get_num_of_leaves()
             impurity = node_dict['impurity']
             X_local = X[node_dict['mask']]
             y_local = y[node_dict['mask']]
 
             # determine if this node should be a leaf
             if X_local.shape[0] == 1 or impurity == 0 or \
-                self.can_add_node(num_of_leaves, depth):
+                self.hyperparam_check(np.sum(node_dict['mask']), depth):
                 # set the value property
                 curr_node.pred_value = np.mean(y_local, axis=0)
                 curr_node.impurity = impurity
@@ -300,18 +299,18 @@ class RegressionTree:
 
         return (best_sample_idx, best_left_sse, best_right_sse)
 
-    def can_add_node(self, num_of_leaves, node_depth):
+    def hyperparam_check(self, sample_size, node_depth):
         """
         This function will be used to help determine if a node should
         be a leaf node. It specifically determines if the BST will not
-        exceed the hyperparameters of the BST, if any were given.
+        exceed the hyperparameters set for the BST, if any were given.
 
         @args:
-        - num_of_leaves: the number of leaves in the tree.
+        - sample_size: the number of samples in the node.
         - node_depth: the depth of a node in the BST.
         """
         return (
-            (self.leaf_size != None and num_of_leaves >= self.leaf_size)
+            (self.leaf_size != None and sample_size >= self.leaf_size)
             or 
             (self.max_height != None and self.max_height == node_depth)
         )

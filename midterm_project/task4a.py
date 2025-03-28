@@ -83,7 +83,7 @@ def create_dataset(num_of_samples):
 
 def main():
     # Creating a training and testing dataset
-    X, y = create_dataset(2_000)
+    X, y = create_dataset(5_000)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=1)
 
@@ -108,10 +108,12 @@ def main():
 
     #### Evaluating performance on a trajectory
     trajectory_eval(model1, model2)
+    # model1.bst.plot_tree()
+    # model2.bst.plot_tree()
 
     #### Finding optimal parameters
-    leaf_sizes = [  None, 8, 16, 32]
-    max_heights = [  1, 4, 8, 12]
+    leaf_sizes  = [50,  100,  500]
+    max_heights = [   2,    4,    8,   16]
     max_heights_table = []
     leaf_sizes_table = []
     model1_mses = []
@@ -128,20 +130,20 @@ def main():
 
             # training two trees and saving the time cost
             model1_start = time.time()
-            model1.fit(X, y[:, 0])
+            model1.fit(X_train, y_train[:, 0])
             model1_end = time.time()
             model1_training_time.append(model1_end - model1_start)
 
             model2_start = time.time()
-            model2.fit(X, y[:, 1])
+            model2.fit(X_train, y_train[:, 1])
             model2_end = time.time()
             model2_training_time.append(model2_end - model2_start)
 
             model1_predictions, model2_predictions = make_predictions(
-                model1, model2, X)
+                model1, model2, X_test)
 
             model1_mse, model2_mse = compute_mse(
-                y, model1_predictions, model2_predictions)
+                y_test, model1_predictions, model2_predictions)
             model1_mses.append(model1_mse)
             model2_mses.append(model2_mse)
 

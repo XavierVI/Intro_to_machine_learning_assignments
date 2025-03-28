@@ -308,9 +308,12 @@ class RegressionTree:
         @args:
         - sample_size: the number of samples in the node.
         - node_depth: the depth of a node in the BST.
+
+        @return: false if at least one of the parameters are violated,
+            true otherwise.
         """
         return (
-            (self.leaf_size != None and sample_size >= self.leaf_size)
+            (self.leaf_size != None and sample_size <= self.leaf_size)
             or 
             (self.max_height != None and self.max_height == node_depth)
         )

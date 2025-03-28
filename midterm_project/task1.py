@@ -10,8 +10,11 @@ class Node:
         self.pred_value = None
         self.impurity = -1
     
-    def eval_condition(self, x): 
-        return x[self.feature] >= self.condition_value
+    def eval_condition(self, x):
+        if type(x) == np.ndarray:
+            return x[self.feature] >= self.condition_value
+        else:
+            return x >= self.condition_value
 
     def is_leaf(self):
         return self.left == None and self.right == None

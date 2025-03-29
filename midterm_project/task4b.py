@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from task4a import make_predictions, compute_mse
 import matplotlib.pyplot as plt
+import time
 
 #### Functions
 def func(x):
@@ -101,11 +102,11 @@ def trajectory_eval(model1, model2):
     axes[1].set_title('Plot of z trajectory')
     axes[1].legend(['actual', 'predicted'])
     axes[1].grid(True)
-    # plt.savefig(fname="task4b_trajectories", dpi=300)
-    plt.show()
+    plt.savefig(fname="task4b_trajectory", dpi=300)
+    # plt.show()
 
 #### Generating training and testing data
-X, y = create_dataset(1000)
+X, y = create_dataset(100)
 #print(X)
 #print(y)
 
@@ -125,3 +126,53 @@ x_predictions, z_predictions = make_predictions(model1, model2, X_test)
 
 #### Plotting trajectories
 trajectory_eval(model1, model2)
+
+# Finding optimal parameters
+leaf_sizes = [10, 25, 50, 100, 200]
+max_heights = [2, 4, 8, 16, 32, 64]
+max_heights_table = []
+leaf_sizes_table = []
+model1_mses = []
+model2_mses = []
+model1_training_time = []
+model2_training_time = []
+
+for max_height in max_heights:
+    for leaf_size in leaf_sizes:
+        max_heights_table.append(max_height)
+        leaf_sizes_table.append(leaf_size)
+        model1 = RegressionTree(leaf_size=leaf_size, max_height=max_height)
+        model2 = RegressionTree(leaf_size=leaf_size, max_height=max_height)
+
+        # training two trees and saving the time cost
+        model1_start = time.time()
+        model1.fit(X_train, y_train[:, 0])
+        model1_end = time.time()
+        model1_training_time.append(model1_end - model1_start)
+
+        model2_start = time.time()
+        model2.fit(X_train, y_train[:, 1])
+        model2_end = time.time()
+        model2_training_time.append(model2_end - model2_start)
+
+        model1_predictions, model2_predictions = make_predictions(
+            model1, model2, X_test)
+
+        model1_mse, model2_mse = compute_mse(
+            y_test, model1_predictions, model2_predictions)
+        model1_mses.append(model1_mse)
+        model2_mses.append(model2_mse)
+
+x1_data = np.array([max_heights_table, leaf_sizes_table,
+                    model1_mses, model1_training_time]).T
+x2_data = np.array([max_heights_table, leaf_sizes_table,
+                    model2_mses, model2_training_time]).T
+
+# printing out the data as a table (formatted to be copied and pasted into OverLeaf)
+for row in x1_data:
+    print(f'{row[0]} & {row[1]} & {row[2]:<.2e} & {row[3]:<.2e} \\\\')
+
+print('=======================================================')
+
+for row in x2_data:
+    print(f'{row[0]} & {row[1]} & {row[2]:<.2e} & {row[3]:<.2e} \\\\')

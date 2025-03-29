@@ -70,8 +70,8 @@ def trajectory_eval(model1, model2):
     axes[1].set_title('Plot of x_2 trajectory')
     axes[1].legend(['actual', 'predicted'])
     axes[1].grid(True)
-    # plt.savefig(fname="task4a_x1_trajectory", dpi=300)
-    plt.show()
+    plt.savefig(fname="task4a_trajectory", dpi=300)
+    # plt.show()
 
 
 def create_dataset(num_of_samples):
@@ -83,7 +83,7 @@ def create_dataset(num_of_samples):
 
 def main():
     # Creating a training and testing dataset
-    X, y = create_dataset(5_000)
+    X, y = create_dataset(2_000)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=1)
 
@@ -112,8 +112,8 @@ def main():
     # model2.bst.plot_tree()
 
     #### Finding optimal parameters
-    leaf_sizes  = [50,  100,  500]
-    max_heights = [   2,    4,    8,   16]
+    leaf_sizes  = [10, 25, 50]
+    max_heights = [ 2, 4, 8, 16]
     max_heights_table = []
     leaf_sizes_table = []
     model1_mses = []
@@ -147,18 +147,17 @@ def main():
             model1_mses.append(model1_mse)
             model2_mses.append(model2_mse)
 
-    headers = ["Max Height", "Leaf Size", "MSE", "Time Cost"]
     x1_data = np.array([max_heights_table, leaf_sizes_table, model1_mses, model1_training_time]).T
     x2_data = np.array([max_heights_table, leaf_sizes_table, model2_mses, model2_training_time]).T
     
     # printing out the data as a table (formatted to be copied and pasted into OverLeaf)
     for row in x1_data:
-        print(f'{row[0]} & {row[1]} & {row[2]:<.2f} & {row[3]:<.2f} \\\\')
+        print(f'{row[0]} & {row[1]} & {row[2]:<.2e} & {row[3]:<.2e} \\\\')
 
     print('=======================================================')
 
     for row in x2_data:
-        print(f'{row[0]} & {row[1]} & {row[2]:<.2f} & {row[3]:<.2f} \\\\')
+        print(f'{row[0]} & {row[1]} & {row[2]:<.2e} & {row[3]:<.2e} \\\\')
     
 
 if __name__ == '__main__':

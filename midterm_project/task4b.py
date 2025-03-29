@@ -128,8 +128,8 @@ x_predictions, z_predictions = make_predictions(model1, model2, X_test)
 trajectory_eval(model1, model2)
 
 # Finding optimal parameters
-leaf_sizes = [10, 25, 50, 100, 200]
-max_heights = [2, 4, 8, 16, 32, 64]
+leaf_sizes = [10, 25, 50, 100, 150]
+max_heights = [2, 4, 8, 16]
 max_heights_table = []
 leaf_sizes_table = []
 model1_mses = []

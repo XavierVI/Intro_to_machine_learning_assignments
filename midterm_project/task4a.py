@@ -59,7 +59,7 @@ def trajectory_eval(model1, model2):
     axes[0].plot(T, predictions_x1[:], '-xr')
     axes[0].set_xlabel('Time')
     axes[0].set_ylabel('State Value')
-    axes[0].set_title('Plot of x_1 trajectory')
+    axes[0].set_title('Plot of $x^{(1)}$ trajectory')
     axes[0].legend(['actual', 'predicted'])
     axes[0].grid(True)
 
@@ -67,7 +67,7 @@ def trajectory_eval(model1, model2):
     axes[1].plot(T, predictions_x2[:], '-xr')
     axes[1].set_xlabel('Time')
     axes[1].set_ylabel('State Value')
-    axes[1].set_title('Plot of x_2 trajectory')
+    axes[1].set_title('Plot of $x^{(2)}$ trajectory')
     axes[1].legend(['actual', 'predicted'])
     axes[1].grid(True)
     plt.savefig(fname="task4a_trajectory", dpi=300)

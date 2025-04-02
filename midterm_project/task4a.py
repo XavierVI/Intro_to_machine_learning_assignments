@@ -104,14 +104,16 @@ def main():
     for x in X_test:
         model1_predictions.append(model1.predict(x))
         model2_predictions.append(model2.predict(x))
-    print(compute_mse(y_test, model1_predictions, model2_predictions))
+    # print(compute_mse(y_test, model1_predictions, model2_predictions))
 
     #### Evaluating performance on a trajectory
+    print('Generating trajectory plots...')
     trajectory_eval(model1, model2)
     # model1.bst.plot_tree()
     # model2.bst.plot_tree()
 
     #### Finding optimal parameters
+    print('Building table...')
     leaf_sizes  = [10, 25, 50]
     max_heights = [ 2, 4, 8, 16]
     max_heights_table = []

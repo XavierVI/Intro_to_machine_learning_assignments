@@ -125,9 +125,11 @@ x_predictions, z_predictions = make_predictions(model1, model2, X_test)
 
 
 #### Plotting trajectories
+print('Generating trajectory plots...')
 trajectory_eval(model1, model2)
 
 # Finding optimal parameters
+print(f'Building table...')
 leaf_sizes = [10, 25, 50, 100, 150]
 max_heights = [2, 4, 8, 16]
 max_heights_table = []

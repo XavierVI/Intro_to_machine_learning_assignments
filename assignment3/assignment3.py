@@ -69,9 +69,12 @@ def grid_search(params, n_components, X_train, y_train):
 mnist_data_dir_path = './mnist-data'
 fashion_data_dir_path = './fashion-data'
 
+# TODO: write a function to perform grid search with a specific dataset
+
 X_train, y_train, X_test, y_test = load_data(fashion_data_dir_path)
 
-#### dictionary for grid search
+#### dictionaries for grid search
+# TODO: add values for each parameter (at least 8 for each)
 grid_search_params_linear = {
     'svc__kernel': ['linear'],
     'svc__C': [1, 10]
@@ -90,6 +93,7 @@ grid_search_params_poly = {
     'svc__degree': [2]
 }
 
+#  TODO: write code to save data in a list and print it out as a table
 PCA_values = [50, 100, 200]
 
 for pca_val in PCA_values:

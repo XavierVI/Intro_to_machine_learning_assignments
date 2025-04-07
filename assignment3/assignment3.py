@@ -1,18 +1,17 @@
 import numpy as np
 import idx2numpy
 
-import matplotlib.pyplot as plt
-
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.metrics import confusion_matrix
 
 from sklearn.svm import SVC
 
 import os
 
-random_state = 1
+
 
 def load_data(dir_path: str):
     """
@@ -43,60 +42,83 @@ def load_data(dir_path: str):
     return training_images, training_labels, testing_images, testing_labels
 
 
-def grid_search(params, n_components, X_train, y_train):
-    # sklearn pipeline (fashion)
-    pipeline = make_pipeline(
-        StandardScaler(),
-        PCA(n_components=n_components),
-        SVC(random_state=random_state),
-        verbose=False
-    )
-
+def grid_search(pipeline, params, X_train, y_train):
     gs = GridSearchCV(
         estimator=pipeline,
         param_grid=params,
         scoring='accuracy',
         cv=2,
-        n_jobs=2
+        n_jobs=2,
+        # the model will return with the best parameters
+        # if this value is True
+        refit=True
     )
 
     gs.fit(X_train, y_train)
 
-    return gs.best_params_, gs.best_score_
+    # return the pipeline with the best parameters
+    return gs.best_estimator_
 
-#### Loading the data into numpy arrays
-# TODO: turn the directory paths into command line arguments?
-mnist_data_dir_path = './mnist-data'
-fashion_data_dir_path = './fashion-data'
+def find_best_hyper_params(pipeline, X_train, y_train, params):
+    # dictionaries for grid search
+    # TODO: add values for each parameter (at least 8 for each)
 
-# TODO: write a function to perform grid search with a specific dataset
+    pass
 
-X_train, y_train, X_test, y_test = load_data(fashion_data_dir_path)
 
-#### dictionaries for grid search
-# TODO: add values for each parameter (at least 8 for each)
-grid_search_params_linear = {
-    'svc__kernel': ['linear'],
-    'svc__C': [1, 10]
-}
+def main():
+    random_state = 1
+   
+    #### Dataset directory paths
+    mnist_data_dir_path = './mnist-data'
+    fashion_data_dir_path = './fashion-data'
+   
+    #### Grid search parameters and PCA components
+    params_linear = {
+        'svc__kernel': ['linear'],
+        'svc__C': [1, 2, 4, 8, 12, 16, 32, 64]
+    }
 
-grid_search_params_rbf = {
+    params_rbf = {
         'svc__kernel': ['rbf'],
-        'svc__C': [1, 10],
-        'svc__gamma': [1]
-}
+        'svc__C': [1, 2, 4, 8, 12, 16, 32, 64],
+        'svc__gamma': [1, 2, 4, 8, 16, 32, 64],
+    }
 
-grid_search_params_poly = {
-    'svc__kernel': ['poly'],
-    'svc__C': [1, 10],
-    'svc__gamma': [1],
-    'svc__degree': [2]
-}
+    params_poly = {
+        'svc__kernel': ['poly'],
+        'svc__C': [1, 2, 4, 8, 12, 16, 32, 64],
+        'svc__gamma': [1, 2, 4, 8, 16, 32, 64],
+        'svc__degree': [2, 3, 4]
+    }
+   
+    PCA_comps = [50, 100, 200]
 
-#  TODO: write code to save data in a list and print it out as a table
-PCA_values = [50, 100, 200]
+    #### Loading data
+    X_train, y_train, X_test, y_test = load_data(mnist_data_dir_path)
 
-for pca_val in PCA_values:
-    print(grid_search(grid_search_params_linear, pca_val, X_train[:1000], y_train[:1000]))
-    print(grid_search(grid_search_params_rbf, pca_val, X_train[:1000], y_train[:1000]))
-    print(grid_search(grid_search_params_poly, pca_val, X_train[:1000], y_train[:1000]))
+
+    for n_comps in PCA_comps:
+        # Creating our pipeline
+        pipeline = make_pipeline(
+            StandardScaler(),
+            PCA(n_components=n_comps),
+            SVC(random_state=random_state),
+            verbose=False
+        )
+        print(f'Finding best hyperparameters for MNIST, n_comps = {n_comps}')
+        
+        #### Get the best model with a linear kernel
+        linear_model = grid_search(
+            pipeline, params_linear, X_train[:1000], y_train[:1000])
+        linear_accuracy = linear_model.score(X_test, y_test)
+        linear_cm = confusion_matrix(y_test, linear_model.predict(X_test))
+        print(linear_cm)
+
+
+        
+
+
+
+if __name__ == '__main__':
+    main()

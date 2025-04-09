@@ -10,7 +10,6 @@ from sklearn.metrics import confusion_matrix
 from sklearn.svm import SVC
 
 import os
-import time
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -62,7 +61,7 @@ def grid_search(pipeline, params, X_train, y_train):
     gs.fit(X_train, y_train)
 
     # return the pipeline with the best parameters
-    return (gs.best_estimator_, gs.refit_time_)
+    return (gs.best_estimator_, gs.refit_time_, gs.best_params_)
 
 
 def run_task(data_dir_path, dataset_name):
@@ -78,8 +77,15 @@ def run_task(data_dir_path, dataset_name):
         'Time Cost': []
     }
 
+    params_table = {
+        'PCA Comps': [],
+        'C': [],
+        'gamma': [],
+        'degree': []
+    }
+
     # Grid search parameters and PCA components
-    param_range = [1e-4, 0.1, 1, 100]
+    param_range = [1e-4, 1e-2, 1, 10, 100, 1000]
     params = [
         {
             'svc__kernel': ['linear'],
@@ -119,9 +125,9 @@ def run_task(data_dir_path, dataset_name):
 
         for i, param_list in enumerate(params):
             # Get the best model with parameters in param_list
-            model, time_cost = grid_search(
+            model, time_cost, best_params = grid_search(
                 pipeline, param_list, X_train[:subset], y_train[:subset])
-
+            # print(f'PCA Comps = {n_comps}, Best parameters: {best_params}')
             accuracy = model.score(X_test, y_test)
             cm = confusion_matrix(y_test, model.predict(X_test))
 
@@ -130,6 +136,23 @@ def run_task(data_dir_path, dataset_name):
             table['Kernel'].append(param_list['svc__kernel'][0])
             table['Accuracy'].append(accuracy)
             table['Time Cost'].append(time_cost)
+
+            if param_list['svc__kernel'][0] == 'linear':
+                params_table['PCA Comps'].append(n_comps)
+                params_table['C'].append(best_params['svc__C'])
+                params_table['gamma'].append(None)
+                params_table['degree'].append(None)
+            elif param_list['svc__kernel'][0] == 'rbf':
+                params_table['PCA Comps'].append(n_comps)
+                params_table['C'].append(best_params['svc__C'])
+                params_table['gamma'].append(best_params['svc__gamma'])
+                params_table['degree'].append(None)
+            else:
+                params_table['PCA Comps'].append(n_comps)
+                params_table['C'].append(best_params['svc__C'])
+                params_table['gamma'].append(best_params['svc__gamma'])
+                params_table['degree'].append(best_params['svc__degree'])
+
 
             # creating an image of a confusion matrix
             sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
@@ -147,6 +170,16 @@ def run_task(data_dir_path, dataset_name):
         plt.savefig(
             fname=f'./images/cm_{dataset_name}_pca_{n_comps}_{param_list['svc__kernel'][0]}_kernel')
 
+    print('============================')
+    print('Parameter table')
+    print('============================')
+    # printing the table
+    for n_comps, C, gamma, degree in zip(params_table['PCA Comps'], params_table['C'], params_table['gamma'], params_table['degree']):
+        print(f"{n_comps} & {C} & {gamma} & {degree} \\\\")
+
+    print('============================')
+    print('Performance table')
+    print('============================')
     # printing the table
     for n_comps, kernel, acc, time_cost in zip(table['PCA Comps'], table['Kernel'], table['Accuracy'], table['Time Cost']):
         print(f"{n_comps} & {kernel} & {acc:.3f} & {time_cost:.3f} \\\\")
@@ -156,15 +189,18 @@ def run_task(data_dir_path, dataset_name):
 def main():
     mnist_data_path = './mnist-data/'
     fashion_data_path = './fashion-data/'
+
+    if not os.path.exists('./images'):
+        os.mkdir('images')
     
     if len(sys.argv) < 2:
         #### Run task for both datasets
-        run_task(mnist_data_path)
-        run_task(fashion_data_path)
+        run_task(mnist_data_path, 'MNIST')
+        run_task(fashion_data_path, 'Fashion MNIST')
     elif sys.argv[1] == 'mnist':
-        run_task(mnist_data_path)
+        run_task(mnist_data_path, 'MNIST')
     elif sys.argv[1] == 'fashion':
-        run_task(fashion_data_path)
+        run_task(fashion_data_path, 'Fashion MNIST')
 
 
 if __name__ == '__main__':

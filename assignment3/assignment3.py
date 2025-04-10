@@ -79,6 +79,7 @@ def run_task(data_dir_path, dataset_name):
 
     params_table = {
         'PCA Comps': [],
+        'kernel': [],
         'C': [],
         'gamma': [],
         'degree': []
@@ -139,16 +140,19 @@ def run_task(data_dir_path, dataset_name):
 
             if param_list['svc__kernel'][0] == 'linear':
                 params_table['PCA Comps'].append(n_comps)
+                params_table['kernel'].append(param_list['svc__kernel'][0])
                 params_table['C'].append(best_params['svc__C'])
                 params_table['gamma'].append(None)
                 params_table['degree'].append(None)
             elif param_list['svc__kernel'][0] == 'rbf':
                 params_table['PCA Comps'].append(n_comps)
+                params_table['kernel'].append(param_list['svc__kernel'][0])
                 params_table['C'].append(best_params['svc__C'])
                 params_table['gamma'].append(best_params['svc__gamma'])
                 params_table['degree'].append(None)
             else:
                 params_table['PCA Comps'].append(n_comps)
+                params_table['kernel'].append(param_list['svc__kernel'][0])
                 params_table['C'].append(best_params['svc__C'])
                 params_table['gamma'].append(best_params['svc__gamma'])
                 params_table['degree'].append(best_params['svc__degree'])
@@ -174,8 +178,10 @@ def run_task(data_dir_path, dataset_name):
     print('Parameter table')
     print('============================')
     # printing the table
-    for n_comps, C, gamma, degree in zip(params_table['PCA Comps'], params_table['C'], params_table['gamma'], params_table['degree']):
-        print(f"{n_comps} & {C} & {gamma} & {degree} \\\\")
+    for n_comps, kernel, C, gamma, degree in zip(
+        params_table['PCA Comps'], params_table['kernel'],
+        params_table['C'], params_table['gamma'], params_table['degree']):
+        print(f"{n_comps} & {kernel} & {C} & {gamma} & {degree} \\\\")
 
     print('============================')
     print('Performance table')
@@ -196,11 +202,11 @@ def main():
     if len(sys.argv) < 2:
         #### Run task for both datasets
         run_task(mnist_data_path, 'MNIST')
-        run_task(fashion_data_path, 'Fashion MNIST')
+        run_task(fashion_data_path, 'Fashion_MNIST')
     elif sys.argv[1] == 'mnist':
         run_task(mnist_data_path, 'MNIST')
     elif sys.argv[1] == 'fashion':
-        run_task(fashion_data_path, 'Fashion MNIST')
+        run_task(fashion_data_path, 'Fashion_MNIST')
 
 
 if __name__ == '__main__':

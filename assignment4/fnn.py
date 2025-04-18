@@ -1,18 +1,18 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
 
 import pandas as pd
 
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-
+from sklearn.model_selection import train_test_split
 
 
 class MovieReviewsDataset(Dataset):
 
-    def __init__(self, csv_file_path, dataset_size, transform=None):
+    def __init__(self, csv_file_path, dataset_size, max_features, transform=None):
         # read the csv file path
         df = pd.read_csv(csv_file_path)
         # shrink the dataset
@@ -23,7 +23,8 @@ class MovieReviewsDataset(Dataset):
         tfidf_vectorizer = TfidfVectorizer(
             tokenizer=self.tokenizer,
             # max_features=10_000
-            stop_words='english'
+            stop_words='english',
+            max_features=max_features
         )
         features = tfidf_vectorizer.fit_transform(df['review'])
         self.features = torch.tensor(features.toarray(), dtype=torch.float32)
@@ -54,69 +55,81 @@ class FNN(nn.Module):
         super().__init__()
         
         self.layers = nn.Sequential(
-            nn.Linear(input_size, 100),
+            nn.Linear(input_size, 1000),
             nn.ReLU(),
-            nn.Linear(100, 50),
+            nn.Linear(1000, 500),
             nn.ReLU(),
-            nn.Linear(50, 2),
+            nn.Linear(500, 2),
             nn.ReLU(),
             nn.Softmax(dim=1)
         )
         
 
     def forward(self, x):
-        return torch.argmax(self.layers(x))
+        return self.layers(x)
 
 
 
-def train_model(model: nn.Module, dataloader, device):
-    num_epochs = 10
+def train_model(model: nn.Module, train_loader, device):
+    # splitting the dataset
+    num_epochs = 50
 
     #### instantiate optimizer
     learning_rate = 0.01
-    batch_size = 32
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
     # Training loop
     for epoch in range(num_epochs):
-        for X, y in dataloader:
+        for X, y in train_loader:
+            X, y = X.to(device), y.to(device)
+            
             # Forward pass
-            outputs = model(X)
-            loss = criterion(outputs, y)
+            pred = model(X)
+            # compute the loss
+            loss = criterion(pred, y)
 
             # Backward and optimize
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
 
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
     
     print('Training finished!')
 
-    # Example of making predictions
-    with torch.no_grad():
-        new_input = torch.randn(5, input_size)
-        predictions = torch.argmax(model(new_input), dim=1)
-        print('Predictions for new inputs:', predictions)
-    
-
 
 def main():
+    batch_size = 32
+    dataset_size = 16_384
+    max_features =  20_000
+
     #### set device to be a CUDA device if available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(device)
     
 
-    dataset = MovieReviewsDataset('./movie_data.csv', 10)
+    dataset = MovieReviewsDataset('./movie_data.csv', dataset_size, max_features)
+
+    # Create train/test indices
+    train_indices, test_indices = train_test_split(
+        range(len(dataset)),
+        test_size=0.3,
+        random_state=42,
+        shuffle=True
+    )
+    train_dataset = Subset(dataset, train_indices)
+    print(f'Training dataset has: {len(train_dataset)} samples')
+    test_dataset = Subset(dataset, test_indices)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    
 
     #### instantiate the model and load it on the device
     model = FNN(dataset.num_of_features())
     model.to(device)
-
-    X, y = dataset[:1]
-    X = X.to(device)
-    print(model(X))
+    
+    train_model(model, train_loader, device)
     
 
 

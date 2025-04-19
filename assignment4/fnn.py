@@ -23,7 +23,7 @@ class MovieReviewsDataset(Dataset):
         tfidf_vectorizer = TfidfVectorizer(
             tokenizer=self.tokenizer,
             # max_features=10_000
-            stop_words='english',
+            # stop_words='english',
             max_features=max_features
         )
         features = tfidf_vectorizer.fit_transform(df['review'])
@@ -56,13 +56,11 @@ class FNN(nn.Module):
         
         # hidden layers
         self.layers = nn.Sequential(
-            nn.Linear(input_size, 1000),
+            nn.Linear(input_size, 512),
             nn.ReLU(),
-            nn.Linear(1000, 1000),
+            nn.Linear(512, 256),
             nn.ReLU(),
-            nn.Linear(1000, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 2)
+            nn.Linear(256, 2)
         )
         
 
@@ -73,14 +71,13 @@ class FNN(nn.Module):
 def train_model(model: nn.Module, train_loader, device):
     # splitting the dataset
     num_epochs = 10
-    print(f'length of train loader {len(train_loader)}')
 
     #### instantiate optimizer
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(
+    optimizer = optim.Adam(
         model.parameters(),
-        lr=0.01,
-        weight_decay=0.001 # L2 regularization
+        lr=0.001,
+        weight_decay=1e-5 # L2 regularization
     )
 
     # Training loop
@@ -108,21 +105,25 @@ def train_model(model: nn.Module, train_loader, device):
             _, y_hat = torch.max(predictions.data, dim=1)
             correct += (y_hat == y).sum().item()
             total += y.size(0)
+            # print(f'Batch Loss: {loss}')
+            # print(f'Avg. Accuracy: {correct * 100 / total}')
 
-        print(f'Epoch [{epoch+1}/{num_epochs}], Avg. Loss: {avg_loss/len(train_loader):.4f}')
+        print(f'Epoch [{epoch+1}/{num_epochs}]')
+        print('============================================================================')
+        print(f'Avg. Loss: {avg_loss/len(train_loader):.4f}')
         print(f'Avg. Accuracy: {correct*100/total:.4f}')
     
     print('Training finished!')
 
 
 def main():
-    batch_size = 64
-    dataset_size = 8_000
+    batch_size = 32
+    dataset_size = 20_000
     max_features =  10_000
 
     #### set device to be a CUDA device if available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    print(device)
+    print(f'Using device: {device}')
     
 
     dataset = MovieReviewsDataset('./movie_data.csv', dataset_size, max_features)

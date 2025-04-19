@@ -57,11 +57,11 @@ class FNN(nn.Module):
         # hidden layers
         self.layers = nn.Sequential(
             nn.Linear(input_size, 1000),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Linear(1000, 1000),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Linear(1000, 1000),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Linear(1000, 2)
         )
         

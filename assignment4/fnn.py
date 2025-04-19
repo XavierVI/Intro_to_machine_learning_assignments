@@ -54,14 +54,15 @@ class FNN(nn.Module):
     def __init__(self, input_size):
         super().__init__()
         
+        # hidden layers
         self.layers = nn.Sequential(
             nn.Linear(input_size, 1000),
-            nn.ReLU(),
-            nn.Linear(1000, 500),
-            nn.ReLU(),
-            nn.Linear(500, 2),
-            nn.ReLU(),
-            nn.Softmax(dim=1)
+            nn.Tanh(),
+            nn.Linear(1000, 1000),
+            nn.Tanh(),
+            nn.Linear(1000, 1000),
+            nn.Tanh(),
+            nn.Linear(1000, 2)
         )
         
 
@@ -69,40 +70,55 @@ class FNN(nn.Module):
         return self.layers(x)
 
 
-
 def train_model(model: nn.Module, train_loader, device):
     # splitting the dataset
-    num_epochs = 50
+    num_epochs = 10
+    print(f'length of train loader {len(train_loader)}')
 
     #### instantiate optimizer
-    learning_rate = 0.01
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(
+        model.parameters(),
+        lr=0.01,
+        weight_decay=0.001 # L2 regularization
+    )
 
     # Training loop
     for epoch in range(num_epochs):
+        # accumulators
+        avg_loss = 0
+        correct = 0
+        total = 0
+
         for X, y in train_loader:
             X, y = X.to(device), y.to(device)
             
-            # Forward pass
-            pred = model(X)
+            # forward pass
+            predictions = model(X)
             # compute the loss
-            loss = criterion(pred, y)
+            loss = loss_fn(predictions, y)
+            avg_loss += loss.item()
 
-            # Backward and optimize
+            # backpropagation
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
 
-        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+            # compute the accuracy
+            _, y_hat = torch.max(predictions.data, dim=1)
+            correct += (y_hat == y).sum().item()
+            total += y.size(0)
+
+        print(f'Epoch [{epoch+1}/{num_epochs}], Avg. Loss: {avg_loss/len(train_loader):.4f}')
+        print(f'Avg. Accuracy: {correct*100/total:.4f}')
     
     print('Training finished!')
 
 
 def main():
-    batch_size = 32
-    dataset_size = 16_384
-    max_features =  20_000
+    batch_size = 64
+    dataset_size = 8_000
+    max_features =  10_000
 
     #### set device to be a CUDA device if available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -115,14 +131,22 @@ def main():
     train_indices, test_indices = train_test_split(
         range(len(dataset)),
         test_size=0.3,
-        random_state=42,
+        random_state=1,
         shuffle=True
     )
+
+    
     train_dataset = Subset(dataset, train_indices)
-    print(f'Training dataset has: {len(train_dataset)} samples')
     test_dataset = Subset(dataset, test_indices)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+
+    # getting a random sample
+    X, y = train_dataset[0]
+    print(X)
+    print(y)
+    print(type(y))
+
     
 
     #### instantiate the model and load it on the device

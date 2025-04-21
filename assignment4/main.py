@@ -91,7 +91,9 @@ def main():
         model_class=FNN,
         dataset=train_dataset,
         input_size=X_train.shape[1],
-        num_epochs=10
+        num_epochs=10,
+        learning_rate=0.0001,
+        l2_reg=5e-6
     )
 
 if __name__ == '__main__':

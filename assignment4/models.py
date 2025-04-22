@@ -26,16 +26,19 @@ class FNNWithDropout(nn.Module):
 
         # hidden layers
         self.layers = nn.Sequential(
-            nn.Linear(input_size, 64),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(64, 16),
-            nn.ReLU(),
+            nn.Linear(input_size, 256),
             nn.Dropout(0.3),
-            nn.Linear(16, 4),
             nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(4, 2)
+            
+            nn.Linear(256, 64),
+            nn.Dropout(0.2),
+            nn.ReLU(),
+
+            nn.Linear(64, 32),
+            nn.Dropout(0.4),
+            nn.ReLU(),
+            
+            nn.Linear(32, 2)
         )
 
     def forward(self, x):

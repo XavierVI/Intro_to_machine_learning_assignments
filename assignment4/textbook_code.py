@@ -4,6 +4,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 
+from nltk.stem.porter import PorterStemmer
+
+porter = PorterStemmer()
+
+def tokenizer_porter(text):
+
+    return [porter.stem(word) for word in text.split()]
+
 def tokenizer(text):
     return text.split()
 

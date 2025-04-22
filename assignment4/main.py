@@ -3,9 +3,14 @@ from torch.utils.data import TensorDataset, Subset, DataLoader
 
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import PCA
 
 from models import *
 from train import *
+
+import nltk
+from nltk.stem.porter import PorterStemmer
+from nltk.corpus import stopwords
 
 import pandas as pd
 
@@ -19,25 +24,31 @@ def load_movie_reviews(csv_file, dataset_size, max_features):
     # shrink the dataset
     df = df[:dataset_size]
 
+    porter = PorterStemmer()
+
+    def tokenizer_porter(text):
+        return [porter.stem(word) for word in text.split()]
+
     # creating the feature vector
     tfidf_vectorizer = TfidfVectorizer(
-        tokenizer=lambda text: text.split(),
-        # tokenizer=tokenizer_porter,
-        stop_words='english',
+        # tokenizer=lambda text: text.split(),
+        tokenizer=tokenizer_porter,
+        stop_words=stopwords.words('english'),
         max_features=max_features,
-        # ngram_range=(1, 2)
+        ngram_range=(1, 2)
     )
     # labels = torch.tensor(df['sentiment'].values)
-    X = tfidf_vectorizer.fit_transform(df['review']).toarray()
+    X = tfidf_vectorizer.fit_transform(df['review'])
     y = df['sentiment'].values
     X_train, X_test, y_train, y_test = train_test_split(
         X, y,
         test_size=0.3,
         random_state=1,
-        shuffle=True
+        shuffle=True,
+        stratify=y
     )
 
-    return X_train, X_test, y_train, y_test
+    return X_train.toarray(), X_test.toarray(), y_train, y_test
 
 def main():
     batch_size = 64
@@ -93,7 +104,7 @@ def main():
         input_size=X_train.shape[1],
         num_epochs=10,
         learning_rate=0.0001,
-        l2_reg=5e-6
+        l2_reg=1e-4
     )
 
 if __name__ == '__main__':

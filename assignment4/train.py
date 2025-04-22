@@ -4,8 +4,10 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
 
 import time
+import numpy as np
 
 from sklearn.model_selection import KFold
+
 
 
 def train_model(
@@ -63,9 +65,9 @@ def train_model(
         test_accuracy = get_test_accuracy(model, test_loader, device)
         print(f'Test accuracy: {test_accuracy*100:.4f}')
 
-        if test_accuracy >= 0.9:
-            print('Reached desired accuracy early, exiting training loop')
-            break
+        # if test_accuracy >= 0.9:
+        #     print('Reached desired accuracy early, exiting training loop')
+        #     break
 
     end = time.time()
     print('Training finished!')
@@ -218,3 +220,22 @@ def perform_kfold(
   print(f'Average: {avg_accuracy} %')
 
   return results, avg_accuracy
+
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Functions for bagging
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+def create_bootstrap(data_tensor, label_tensor):
+    """
+    Returns a subset of the dataset using bagging with replacement.
+    """
+    n_samples = data_tensor.size(0)
+    indices = np.random.default_rng(1).choice(
+        n_samples, size=n_samples, replace=True)
+    return data_tensor[indices], label_tensor[indices]
+
+
+

@@ -4,7 +4,7 @@ from torch.utils.data import TensorDataset, Subset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from models import FNN
+from models import *
 from train import *
 
 import pandas as pd
@@ -73,19 +73,19 @@ def main():
     )
 
     # instantiate the model and load it on the device
-    model = FNN(X_train.size(1))
+    model = FNNWithDropout(X_train.size(1))
     model.to(device)
 
-    test_acc, time_cost = train_model(
-        model=model,
-        train_loader=train_loader,
-        test_loader=test_loader,
-        device=device,
-        num_epochs=50,
-        learning_rate=0.0001,
-        l2_reg=5e-6
-    )
-    print(f'Test accuracy and time cost: {test_acc*100}, {time_cost:.4f}')
+    # test_acc, time_cost = train_model(
+    #     model=model,
+    #     train_loader=train_loader,
+    #     test_loader=test_loader,
+    #     device=device,
+    #     num_epochs=25,
+    #     learning_rate=0.0001,
+    #     l2_reg=5e-6
+    # )
+    # print(f'Test accuracy and time cost: {test_acc*100}, {time_cost:.4f}s')
 
     perform_kfold(
         model_class=FNN,

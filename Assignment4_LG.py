@@ -7,11 +7,43 @@ import pyprind
 import pandas as pd
 import os
 import sys
+import torch.nn as nn
 import numpy as np
+import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import TfidfTransformer, TfidfVectorizer, CountVectorizer
 from sklearn.model_selection import train_test_split
+from nltk.stem.porter import PorterStemmer
+from nltk.corpus import stopwords
+from torch.xpu import device
+
+
+
+
+class FNN(nn.Module):
+    def __init__(self, input_feature_size):
+        super().__init__()
+        self.dropout = nn.Dropout(0.2)
+        self.layer1 = nn.Linear(input_feature_size, 2048)
+        self.act1 = nn.ReLU()
+        self.dropout = nn.Dropout(0.2)
+        self.layer2 = nn.Linear(2048, 64)
+        self.act2 = nn.ReLU()
+        self.dropout = nn.Dropout(0.2)
+        self.layer3 = nn.Linear(64, 64)
+        self.act3 = nn.ReLU()
+        self.dropout = nn.Dropout(0.2)
+        self.output = nn.Linear(64, 2)
+        self.Sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.dropout(x)
+        x = self.act1(self.layer1(x))
+        x = self.act2(self.layer2(x))
+        x = self.act3(self.layer3(x))
+        x = self.Sigmoid(self.output(x))
+        return x
+
 
 #start of Task 1
 np.random.seed(0)
@@ -20,6 +52,106 @@ count = CountVectorizer()
 tfidf = TfidfTransformer(use_idf=True, norm = 'l2',smooth_idf=True)
 np.set_printoptions(precision =2)
 movie_dir_path = '/Users/liamg/PycharmProjects/PythonProject/movieReviewdataset/'
+
+
+
+
+def load_movie_reviews(csv_file, dataset_size, max_features):
+    """
+    returns the data as two tensors
+    """
+    # read the csv file path
+    df = pd.read_csv(csv_file)
+    # shrink the dataset
+    df = df[:dataset_size]
+
+    # creating the feature vector
+    tfidf_vectorizer = TfidfVectorizer(
+        tokenizer=lambda text: text.split(),
+        stop_words='english',
+        max_features=max_features,
+    )
+    labels = torch.tensor(df['sentiment'].values)
+    features = tfidf_vectorizer.fit_transform(df['review'])
+    features = torch.tensor(features.toarray(), dtype=torch.float32)
+    return features, labels
+
+def get_test_accuracy(model, test_loader,device):
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for (X, y) in test_loader:
+            X, y = X.to(device), y.to(device)
+            X = X.float()
+            predictions = model(X)
+            # compute the accuracy
+            _, y_hat = torch.max(predictions.data, dim=1)
+            if torch.equal(y_hat, y):
+                correct += 1
+            total += y.size(0)
+
+    return correct / total
+
+
+
+review_array, labels = load_movie_reviews('./movie_data.csv', 10000, 20000 )
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+#device = torch.device("cpu")
+X_train, X_test, y_train, y_test = train_test_split(review_array, labels, test_size = 0.3, random_state = 0)
+#end of Task 1
+#start of Task 2
+bs = 8
+joint_train = TensorDataset(X_train, y_train)
+joint_test = TensorDataset(X_test, y_test)
+test_loader = DataLoader(joint_test, batch_size=bs, shuffle=True, drop_last=False)
+train_loader = DataLoader(joint_train, batch_size=bs, shuffle=True, drop_last=False)
+
+def model_train(model, train_load, test_load, n_epochs):
+    model = model.to(device)
+    accuracies = []
+    epoch_acc = []
+    L = torch.nn.CrossEntropyLoss()
+    optimizer = optim.Adam(net.parameters(), lr=.00001, weight_decay=1e-5  )
+
+    model.train()
+    for epoch in range(n_epochs):
+        print('Epoch {}/{}'.format(epoch + 1, n_epochs))
+        for (x, y) in train_load:
+            x, y = x.to(device), y.to(device)
+            x = x.float()
+            output = net(x)
+            loss = L(output, y)
+            loss.backward()
+            optimizer.step()
+            net.zero_grad()
+
+        curr_accuracy = float(get_test_accuracy(model, test_load, device))
+        print(f"accuracy in epoch {epoch} = {curr_accuracy}")
+        epoch_acc.append(curr_accuracy)
+    # evaluate accuracy after training
+    model.eval()
+    for (x, y) in test_load:
+        x, y = x.to(device), y.to(device)
+        x = x.float()
+        y_pred = model(x)
+        y_pred = y_pred.float()
+        if torch.equal(y_pred, y):
+            accuracies.append(1)
+        else:
+            accuracies.append(0)
+
+
+    return accuracies, epoch_acc
+
+net = FNN(20000)
+acc_arr, epoch_accuracy = model_train(net,train_loader,test_loader,20)
+acc_arr = np.array(acc_arr)
+epoch_accuracy = np.array(epoch_accuracy)
+for i in range(len(epoch_accuracy)):
+    print('Epoch {}: Accuracy {}'.format(i + 1, epoch_accuracy[i]))
+print(f"Accuracy after eval:{np.mean(acc_arr)}")
+
+
 ''' This Code block was used to extract the original compressed data set and get a csv created so each time you run the program, you dont ahve to wait for decompression
 with tarfile.open('aclImdb_v1.tar.gz', 'r:gz') as tar:
     tar.extractall()
@@ -54,28 +186,6 @@ print(df.head())
 df['review'] = df['review'].apply(preprocessor)
 df.to_csv('movie_data.csv', index=False, encoding ='utf-8')
 '''
-
-df = pd.read_csv('movie_data.csv', encoding = 'utf-8')
-df = df.rename(columns={"0": 'review',"1":'sentiment'})
-review_array = df['review'].to_numpy()
-labels = df['sentiment'].to_numpy()
-
-tfidf_data = tfidf.fit_transform(count.fit_transform(review_array)).toarray()
-#tfidf_label = tfidf.fit_transform(labels).toarray()
-
-X_train, X_test, y_train, y_test = train_test_split(tfidf_data, labels, test_size = 0.3, random_state = 0)
-#end of Task 1
-#start of Task 2
-
-train_tensor_x = torch.from_numpy(X_train)
-test_tensor_x = torch.from_numpy(X_test)
-train_tensor_y = torch.from_numpy(y_train)
-test_tensor_y = torch.from_numpy(y_test)
-bs = 64
-
-joint_train = TensorDataset(train_tensor_x, train_tensor_y)
-joint_test = TensorDataset(test_tensor_x, test_tensor_y)
-
 '''
 loaded_train_x = DataLoader(train_tensor_x, batch_size=bs, shuffle=True, drop_last=False)
 loaded_test_x = DataLoader(test_tensor_x, batch_size=bs, shuffle=True, drop_last=False)
@@ -103,44 +213,48 @@ class Net(torch.nn.Module):
         return x
 
 '''
-test_loader = DataLoader(joint_test, batch_size=bs, shuffle=True, drop_last=False)
-train_loader = DataLoader(joint_train, batch_size=bs, shuffle=True, drop_last=False)
+'''
+df = pd.read_csv('movie_data.csv', encoding = 'utf-8')
+df = df.rename(columns={"0": 'review',"1":'sentiment'})
+review_array = df['review'].to_numpy()
+labels = df['sentiment'].to_numpy()
+tfidf_data = tfidf.fit_transform(count.fit_transform(review_array))
+#tfidf_label = tfidf.fit_transform(labels).toarray()
+
+train_tensor_x = torch.from_numpy(X_train)
+test_tensor_x = torch.from_numpy(X_test)
+train_tensor_y = torch.from_numpy(y_train)
+test_tensor_y = torch.from_numpy(y_test)
+X_train = X_train.to(device)
+y_train = y_train.to(device)
+'''
+'''
+
+net = FNN(20000)
+net = net.to(device)
+optimizer = optim.Adam(
+        net.parameters(),
+        lr=.000001,
+        weight_decay=1e-6  # L2 regularization
+        )
 
 
-net = torch.nn.Sequential(
-    torch.nn.Linear(104083, 64),
-    torch.nn.ReLU(),
-    torch.nn.Linear(64, 64),
-    torch.nn.ReLU(),
-    torch.nn.Linear(64, 64),
-    torch.nn.ReLU(),
-    torch.nn.Linear(64, 64),
-    torch.nn.ReLU(),
-    torch.nn.Linear(64, 2),
-    torch.nn.Softmax(dim=1)
-)
-
-
-
-optimizer = torch.optim.SGD(net.parameters(), lr = 0.1)
 L = torch.nn.CrossEntropyLoss()
-for epoch in range(10):
-    print(f"Staring epoch: {epoch}")
-    for (x,y) in test_loader:
-
+for epoch in range(50):
+    #print(f"Staring epoch: {epoch}")
+    for (x,y) in train_loader:
+        x,y = x.to(device), y.to(device)
         x = x.float()
-        output = net.forward(x.view(-1,104083))
+        output = net(x)
         loss = L(output, y)
         loss.backward()
         optimizer.step()
         net.zero_grad()
 
-    print(f"Ending epoch: {epoch}")
+    print(f"accuracy: {get_test_accuracy(net, test_loader,device)} in epoch {epoch}")
+    #print(f"Ending epoch: {epoch}")
 
-torch.onnx.export(
-net, # model to export
-(train_loader,), # inputs of the model,
-"FNN_clf.onnx", # filename of the ONNX model
-input_names=["input"], # Rename inputs for the ONNX model
-dynamo=True # True or False to select the exporter to use
-)
+'''
+
+
+

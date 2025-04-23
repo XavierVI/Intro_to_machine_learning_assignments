@@ -61,7 +61,7 @@ class BST:
         
         return num_of_leaves
 
-    def plot_tree(self):
+    def plot_tree(self, H, L):
         """
         """
         fig, ax = plt.subplots(figsize=(24, 12))
@@ -73,7 +73,8 @@ class BST:
 
         self._draw_tree(ax, self.root_node, node_positions)
 
-        plt.title("Regression Tree", fontsize=14)
+        plt.title(f"Regression Tree: Max Height: {H}; Leaf Size: {L}", fontsize=14)
+
         plt.show()
 
     def _assign_positions(self, node, x, y, node_positions, level_spacing):

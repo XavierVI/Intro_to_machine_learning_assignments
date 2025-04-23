@@ -3,7 +3,6 @@ import torch.optim as optim
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
 
-import time
 import numpy as np
 
 from sklearn.model_selection import KFold
@@ -30,7 +29,6 @@ def train_model(
     test_accuracy = 0
 
     # Training loop
-    start = time.time()
     for epoch in range(num_epochs):
         # accumulators
         avg_loss = 0
@@ -69,11 +67,10 @@ def train_model(
         #     print('Reached desired accuracy early, exiting training loop')
         #     break
 
-    end = time.time()
     print('Training finished!')
 
     # return the final test accuracy and time cost
-    return test_accuracy, (end - start)
+    return test_accuracy
 
 
 def get_test_accuracy(model, test_loader, device):

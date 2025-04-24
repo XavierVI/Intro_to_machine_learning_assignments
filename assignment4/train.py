@@ -192,9 +192,10 @@ def perform_kfold(
 
         # Generate outputs
         outputs = model(inputs)
+        probabilities = torch.nn.functional.softmax(outputs, dim=1)
 
         # Set total and correct
-        _, predicted = torch.max(outputs.data, 1)
+        _, predicted = torch.max(probabilities, dim=1)
         total += targets.size(0)
         correct += (predicted == targets).sum().item()
 

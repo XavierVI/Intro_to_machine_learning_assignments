@@ -49,7 +49,8 @@ def train_model(
             optimizer.zero_grad()
 
             # compute the accuracy
-            _, y_hat = torch.max(predictions.data, dim=1)
+            probabilities = torch.nn.functional.softmax(predictions, dim=1)
+            y_hat = torch.argmax(probabilities, dim=1)
             correct += (y_hat == y).sum().item()
             total += y.size(0)
             # print(f'Batch Loss: {loss}')
@@ -81,8 +82,9 @@ def get_test_accuracy(model, test_loader, device):
         for X, y in test_loader:
             X, y = X.to(device), y.to(device)
             predictions = model(X)
+            probabilities = torch.nn.functional.softmax(predictions, dim=1)
             # compute the accuracy
-            _, y_hat = torch.max(predictions.data, dim=1)
+            y_hat = torch.argmax(probabilities, dim=1)
             correct += (y_hat == y).sum().item()
             total += y.size(0)
 
@@ -195,7 +197,7 @@ def perform_kfold(
         probabilities = torch.nn.functional.softmax(outputs, dim=1)
 
         # Set total and correct
-        _, predicted = torch.max(probabilities, dim=1)
+        predicted = torch.argmax(probabilities, dim=1)
         total += targets.size(0)
         correct += (predicted == targets).sum().item()
 
@@ -226,11 +228,10 @@ def perform_kfold(
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 
-def create_bootstrap(data_tensor, label_tensor):
+def create_bootstrap(n_samples, data_tensor, label_tensor):
     """
     Returns a subset of the dataset using bagging with replacement.
     """
-    n_samples = data_tensor.size(0)
     indices = np.random.default_rng(1).choice(
         n_samples, size=n_samples, replace=True)
     return data_tensor[indices], label_tensor[indices]

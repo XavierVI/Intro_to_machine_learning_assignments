@@ -11,8 +11,8 @@ import time
 
 def main():
     batch_size = 64
-    dataset_size = 40_000
-    max_features = 20_000
+    dataset_size = 35_000
+    max_features = 10_000
 
     # set device to be a CUDA device if available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')

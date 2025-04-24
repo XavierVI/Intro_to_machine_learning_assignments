@@ -12,7 +12,7 @@ import time
 
 def main():
     batch_size = 64
-    dataset_size = 40_000
+    dataset_size = 20_000
     max_features = 20_000
 
     # set device to be a CUDA device if available

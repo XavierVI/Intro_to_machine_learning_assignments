@@ -1,6 +1,6 @@
 import torch
+import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
-
 
 from models import *
 from train import *
@@ -10,11 +10,11 @@ from move_reviews import load_movie_reviews
 import time
 
 
-
 def main():
     batch_size = 64
-    dataset_size = 40_000
-    max_features = 20_000
+    dataset_size = 30_000
+    max_features = 10_000
+    num_of_models = 6
     # set device to be a CUDA device if available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
@@ -28,15 +28,18 @@ def main():
     y_train = torch.tensor(y_train)
     y_test = torch.tensor(y_test)
 
-    train_dataset = TensorDataset(X_train, y_train)
+    #### create a set of bootstraps
+    X_train_bootstraps = []
+    y_train_bootstraps = []
+
+    for i in range(num_of_models):
+        features, labels = create_bootstrap(10_000, X_train, y_train)
+        X_train_bootstraps.append(features)
+        y_train_bootstraps.append(labels)
+
+
     test_dataset = TensorDataset(X_test, y_test)
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        pin_memory=True
-    )
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
@@ -45,76 +48,21 @@ def main():
     )
 
     #### Define the layers for each model
-    model1 = FNNWithDropout(X_train.size(1), layers=nn.Sequential(
-        nn.Linear(X_train.size(1), 512),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(512, 256),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(256, 128),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(128, 2)
-    ))
+    models = [FNNWithDropout(X_train.shape[1]).to(device) 
+                    for _ in range(num_of_models)]
 
-    model2 = FNNWithDropout(X_train.size(1), layers=nn.Sequential(
-        nn.Linear(X_train.size(1), 512),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(512, 256),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(256, 128),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(128, 2)
-    ))
-
-    model3 = FNNWithDropout(X_train.size(1), layers=nn.Sequential(
-        nn.Linear(X_train.size(1), 512),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(512, 256),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(256, 128),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(128, 2)
-    ))
-
-    model4 = FNNWithDropout(X_train.size(1), layers=nn.Sequential(
-        nn.Linear(X_train.size(1), 512),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(512, 256),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(256, 128),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(128, 2)
-    ))
-
-    model5 = FNNWithDropout(X_train.size(1), layers=nn.Sequential(
-        nn.Linear(X_train.size(1), 512),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(512, 256),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(256, 128),
-        nn.ReLU(),
-        nn.Dropout(0.5),
-        nn.Linear(128, 2)
-    ))
-
-    models = [model1, model2, model3, model4, model5]
+    ensemble = zip(models, X_train_bootstraps, y_train_bootstraps)
 
     start = time.time()
-    for i, model in enumerate(models):
-        model.to(device)
+    for i, (model, X_train, y_train) in enumerate(ensemble):
+        train_dataset = TensorDataset(X_train, y_train)
+
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            pin_memory=True
+        )
         test_acc = train_model(
             model=model,
             train_loader=train_loader,
@@ -127,7 +75,20 @@ def main():
         end = time.time()
         time_cost = end - start
 
-        print(f'Avg. accuracy and time cost for model {i}: {test_acc:.2f}, {time_cost:.4f}s')
+        print(f'Avg. accuracy and time cost for model {i}: {test_acc*100:.2f}, {time_cost:.4f}s')
+
+    #### evaluating the ensemble
+    X_test = X_test.to(device)
+    y_test = y_test.to(device)
+    predictions = [nn.functional.softmax(model(X_test), dim=1) for model in models]
+    predictions = torch.stack(predictions)
+    predictions = torch.mean(predictions, dim=0)
+    predicted = torch.argmax(predictions, dim=1)
+    correct = (predicted == y_test).sum().item()
+    total = y_test.size(0)
+    accuracy = 100.0 * correct / total
+    print(f'Ensemble accuracy: {accuracy:.2f}%')
+
 
 
 if __name__ == '__main__':

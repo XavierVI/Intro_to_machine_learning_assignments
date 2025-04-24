@@ -23,24 +23,26 @@ from torch.xpu import device
 class FNN(nn.Module):
     def __init__(self, input_feature_size):
         super().__init__()
-        self.dropout = nn.Dropout(0.2)
-        self.layer1 = nn.Linear(input_feature_size, 2048)
+
+        self.layer1 = nn.Linear(input_feature_size, 64)
         self.act1 = nn.ReLU()
         self.dropout = nn.Dropout(0.2)
-        self.layer2 = nn.Linear(2048, 64)
+        self.layer2 = nn.Linear(64, 64)
         self.act2 = nn.ReLU()
         self.dropout = nn.Dropout(0.2)
         self.layer3 = nn.Linear(64, 64)
         self.act3 = nn.ReLU()
         self.dropout = nn.Dropout(0.2)
         self.output = nn.Linear(64, 2)
-        self.Sigmoid = nn.Sigmoid()
+        self.Sigmoid = nn.Softmax(dim=1)
 
     def forward(self, x):
-        x = self.dropout(x)
         x = self.act1(self.layer1(x))
+        x = self.dropout(x)
         x = self.act2(self.layer2(x))
+        x = self.dropout(x)
         x = self.act3(self.layer3(x))
+        x = self.dropout(x)
         x = self.Sigmoid(self.output(x))
         return x
 
@@ -89,18 +91,19 @@ def get_test_accuracy(model, test_loader,device):
             if torch.equal(y_hat, y):
                 correct += 1
             total += y.size(0)
-
+    print("correct: ", correct)
+    print("total: ", total)
     return correct / total
 
 
 
-review_array, labels = load_movie_reviews('./movie_data.csv', 10000, 20000 )
+review_array, labels = load_movie_reviews('./movie_data.csv', 10000, 10000 )
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 #device = torch.device("cpu")
 X_train, X_test, y_train, y_test = train_test_split(review_array, labels, test_size = 0.3, random_state = 0)
 #end of Task 1
 #start of Task 2
-bs = 8
+bs = 1
 joint_train = TensorDataset(X_train, y_train)
 joint_test = TensorDataset(X_test, y_test)
 test_loader = DataLoader(joint_test, batch_size=bs, shuffle=True, drop_last=False)
@@ -108,13 +111,12 @@ train_loader = DataLoader(joint_train, batch_size=bs, shuffle=True, drop_last=Fa
 
 def model_train(model, train_load, test_load, n_epochs):
     model = model.to(device)
-    accuracies = []
-    epoch_acc = []
     L = torch.nn.CrossEntropyLoss()
-    optimizer = optim.Adam(net.parameters(), lr=.00001, weight_decay=1e-5  )
+    optimizer = optim.Adam(net.parameters(), lr=.00001, weight_decay=1e-5  ) #1545
 
     model.train()
     for epoch in range(n_epochs):
+        epoch_acc = []
         print('Epoch {}/{}'.format(epoch + 1, n_epochs))
         for (x, y) in train_load:
             x, y = x.to(device), y.to(device)
@@ -125,26 +127,30 @@ def model_train(model, train_load, test_load, n_epochs):
             optimizer.step()
             net.zero_grad()
 
-        curr_accuracy = float(get_test_accuracy(model, test_load, device))
+        curr_accuracy = get_test_accuracy(model, test_load, device)
         print(f"accuracy in epoch {epoch} = {curr_accuracy}")
         epoch_acc.append(curr_accuracy)
     # evaluate accuracy after training
     model.eval()
+    correct = 0
+    total = 0
+    accuracies = []
     for (x, y) in test_load:
+
+
         x, y = x.to(device), y.to(device)
         x = x.float()
         y_pred = model(x)
         y_pred = y_pred.float()
         if torch.equal(y_pred, y):
-            accuracies.append(1)
-        else:
-            accuracies.append(0)
-
+            correct += 1
+        total += y.size(0)
+        accuracies.append(correct / total)
 
     return accuracies, epoch_acc
 
-net = FNN(20000)
-acc_arr, epoch_accuracy = model_train(net,train_loader,test_loader,20)
+net = FNN(10000)
+acc_arr, epoch_accuracy = model_train(net,train_loader,test_loader,10)
 acc_arr = np.array(acc_arr)
 epoch_accuracy = np.array(epoch_accuracy)
 for i in range(len(epoch_accuracy)):

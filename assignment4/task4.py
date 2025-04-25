@@ -5,14 +5,14 @@ from torch.utils.data import TensorDataset, DataLoader
 from models import *
 from train import *
 
-from move_reviews import load_movie_reviews
+from movie_reviews import load_movie_reviews
 
 import time
 
 def main():
     batch_size = 64
-    dataset_size = 50_000
-    max_features = 20_000
+    dataset_size = 30_000
+    max_features = 10_000
 
     # set device to be a CUDA device if available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -34,7 +34,7 @@ def main():
         input_size=X_train.size(1),
         batch_size=batch_size,
         k_folds=5,
-        num_epochs=10,
+        num_epochs=20,
         learning_rate=0.0001,
         l2_reg=5e-6
     )

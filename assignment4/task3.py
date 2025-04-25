@@ -5,7 +5,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from models import *
 from train import *
 
-from move_reviews import load_movie_reviews
+from movie_reviews import load_movie_reviews
 
 import time
 

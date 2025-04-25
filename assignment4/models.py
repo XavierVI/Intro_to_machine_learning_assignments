@@ -11,8 +11,10 @@ class FNN(nn.Module):
         self.layers = nn.Sequential(
             nn.Linear(input_size, 16),
             nn.ReLU(),
+            
             nn.Linear(16, 4),
             nn.ReLU(),
+            
             nn.Linear(4, 2)
         )
 
@@ -31,15 +33,15 @@ class FNNWithDropout(nn.Module):
         # hidden layers
         self.layers = nn.Sequential(
             nn.Linear(input_size, 256),
-            nn.Dropout(0.3),
+            nn.Dropout(0.4),
             nn.ReLU(),
             
             nn.Linear(256, 64),
-            nn.Dropout(0.2),
+            nn.Dropout(0.3),
             nn.ReLU(),
 
             nn.Linear(64, 32),
-            nn.Dropout(0.4),
+            nn.Dropout(0.2),
             nn.ReLU(),
             
             nn.Linear(32, 2)

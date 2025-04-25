@@ -69,7 +69,7 @@ def load_movie_reviews(csv_file, dataset_size, max_features):
     tfidf_vectorizer = TfidfVectorizer(
         # tokenizer=lambda text: text.split(),
         tokenizer=tokenizer_porter,
-        stop_words=stopwords.words('english'),
+        stop_words='english',
         max_features=max_features,
         ngram_range=(1, 2)
     )

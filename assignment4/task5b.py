@@ -5,15 +5,15 @@ from torch.utils.data import TensorDataset, DataLoader
 from models import *
 from train import *
 
-from movie_reviews import load_movie_reviews
+from move_reviews import load_movie_reviews
 
 import time
 
 
 def main():
     batch_size = 64
-    dataset_size = 50_000
-    max_features = 20_000
+    dataset_size = 30_000
+    max_features = 10_000
     num_of_models = 6
     # set device to be a CUDA device if available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -33,7 +33,7 @@ def main():
     y_train_bootstraps = []
 
     for i in range(num_of_models):
-        features, labels = create_bootstrap(20_000, X_train, y_train)
+        features, labels = create_bootstrap(10_000, X_train, y_train)
         X_train_bootstraps.append(features)
         y_train_bootstraps.append(labels)
 
@@ -70,7 +70,7 @@ def main():
             device=device,
             num_epochs=10,
             learning_rate=0.0001,
-            l2_reg=0.0
+            l2_reg=5e-6
         )
         end = time.time()
         time_cost = end - start

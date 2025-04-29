@@ -139,7 +139,7 @@ def main():
     print(f'Using device: {device}')
     
 
-    X, y = load_movie_reviews('./movie_data.csv', dataset_size, max_features)
+    X, y = load_movie_reviews('../movie_data.csv', dataset_size, max_features)
     X = torch.tensor(X, dtype=torch.float32)
     y = torch.tensor(y)
     dataset = TensorDataset(X, y)

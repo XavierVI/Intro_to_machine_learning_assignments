@@ -20,7 +20,7 @@ def main():
 
     # only use the training data
     X_train, _, y_train, _ \
-        = load_movie_reviews('./movie_data.csv', dataset_size, max_features)
+        = load_movie_reviews('../movie_data.csv', dataset_size, max_features)
 
     X_train = torch.tensor(X_train, dtype=torch.float32)
     y_train = torch.tensor(y_train)

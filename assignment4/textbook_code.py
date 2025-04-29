@@ -16,7 +16,7 @@ def tokenizer(text):
     return text.split()
 
 
-df = pd.read_csv('movie_data.csv')
+df = pd.read_csv('../movie_data.csv')
 print(df.info())
 
 X_train = df.loc[:25_000, 'review'].values

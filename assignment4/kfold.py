@@ -133,7 +133,7 @@ if __name__ == '__main__':
   # Load your data
   dataset_size = 50_000
   max_features = 20_000
-  X, y = load_movie_reviews('./movie_data.csv', dataset_size, max_features)
+  X, y = load_movie_reviews('../movie_data.csv', dataset_size, max_features)
   dataset = TensorDataset(X, y)
 
   # Call the k-fold cross validation function

@@ -19,7 +19,7 @@ def main():
     print(f'Using device: {device}')
 
     X_train, X_test, y_train, y_test \
-        = load_movie_reviews('./movie_data.csv', dataset_size, max_features)
+        = load_movie_reviews('../movie_data.csv', dataset_size, max_features)
     
     X_train = torch.tensor(X_train, dtype=torch.float32)
     X_test = torch.tensor(X_test, dtype=torch.float32)

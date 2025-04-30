@@ -10,12 +10,16 @@ class CarModel:
     """
 
     def __init__(self):
-        X = np.linspace(-5, 5, 21)
-        V = np.linspace(-5, 5, 21)
-        U = np.array([-5, -1, -0.1, -0.01, -0.001, -0.0001, 0,
+        self.X = np.linspace(-5, 5, 21)
+        self.V = np.linspace(-5, 5, 21)
+        self.U = np.array([-5, -1, -0.1, -0.01, -0.001, -0.0001, 0,
                       0.0001, 0.001, 0.01, 0.1, 1, 5])
         self.delta = 0.1
         self.step = np.linspace(0, self.delta)
+
+        # a list to compute the index in the Q table (for either x or v)
+        self.s_to_index = {x_val: i for i, x_val in enumerate(self.X)}
+        self.u_to_index = {u_val: i for i, u_val in enumerate(self.U)}
 
     def model(self, s, t, u):
         dsdt = [ s[1], u  ]
@@ -28,37 +32,66 @@ class CarModel:
         """
         # compute the next state
         y = odeint(self.model, s, self.step, args=(u,))
-        return y
+        return y[-1]
 
-    def generate_trajectory(self, s0, u, T, Q):
+    def get_reward(self, s, u):
+        return 0
+
+
+    def get_best_action(self, s, Q):
         """
-        This function generates a trajectory of states s = (x, v).
+        This function computes the best action for a given state s
+        using the Q table.
+        """
+        x_idx = self.s_to_index[s[0]]
+        v_idx = self.s_to_index[s[1]]
+        q_values = Q[x_idx, v_idx, :]
+        best_action_idx = np.argmax(q_values)
+        best_action = self.U[best_action_idx]
+
+        return best_action
+
+
+    def generate_trajectory(self, s0, T, Q):
+        """
+        This function generates a trajectory of states s = (x, v), using
+        a Q table to select the control input at each time step.
 
         s0: the initial state
-        u: a vector of control inputs
         T: the final time step such that s(t) is the terminal state
         Q: the Q-table
         """
-        # transforms x, y, and u into an index
-        idx_transform = lambda x: 2*x + 10
-        u_idx_transform = lambda u: 1.2*u + 6.0
+        prev_s = s0
 
-        # let the trajectory be represented as a tuple of (s, u, r)
-        # where s = (x, y) is the state, u is the control input, and r is the reward
-        trajectory = np.array([(s0, u[0], 0)])
+        # compute the next control input
+        prev_u = self.get_best_action(prev_s, Q)
+
+        # compute the next reward outside of the loop
+        R = self.get_reward(prev_s, prev_u)
+        
+        # let the trajectory be represented as a T x 3 array where
+        # each entry is (s, u, r)
+        # where s = (x, y) is the state,
+        # u is the control input, and r is the reward
+        trajectory = np.zeros((T, 3))
+        trajectory[0] = [prev_s, prev_u, R]
 
         for i in range(1, T):
             # compute the next state
-            s_i, u_i, _ = trajectory[i-1]
+            s_i = self.get_next_state(prev_s, prev_u)
+            u_i = self.get_best_action(s_i, Q)
+            R = self.get_reward(s_i, u_i)
 
-            x_idx = idx_transform(s_i[0])
-            y_idx = idx_transform(s_i[1])
-            u_idx = u_idx_transform(u_i)
+            # add the new sequence to the trajectory
+            trajectory[i] = [s_i, u_i, R]
 
-            # compute the next state
-            s
-            r = Q[x_idx, y_idx, u_idx]
+            # update the previous state and control input
+            prev_s = s_i
+            prev_u = u_i
 
+        return trajectory
+            
+            
     
 
 

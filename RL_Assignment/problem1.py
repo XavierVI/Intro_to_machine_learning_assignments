@@ -4,74 +4,6 @@ from scipy.integrate import odeint
 
 """
 
-class CarModel:
-    """
-    This class defines the car for problem 1.
-    """
-
-    def __init__(self, X, V, U):
-        # size of each time step
-        self.delta = 0.1
-        self.step = np.linspace(0, self.delta)
-
-    def model(self, s, t, u):
-        dsdt = [ s[1], u  ]
-        return dsdt
-
-    def get_next_state(self, s, u):
-        """
-        This function computes the next state of the car given the
-        current state and the control input.
-        """
-        # compute the next state
-        y = odeint(self.model, s, self.step, args=(u,))
-        return y[-1]
-
-    def get_reward(self, s, u):
-        if abs()
-        return 0
-
-
-    def generate_trajectory(self, s0, T, agent):
-        """
-        This function generates a trajectory of states s = (x, v), using
-        a Q table to select the control input at each time step.
-
-        s0: the initial state
-        T: the final time step such that s(t) is the terminal state
-        Q: the Q-table
-        """
-        prev_s = s0
-
-        # compute the next control input
-        prev_u = agent.get_best_action(prev_s)
-
-        # compute the next reward outside of the loop
-        R = self.get_reward(prev_s, prev_u)
-        
-        # let the trajectory be represented as a T x 3 array where
-        # each entry is (s, u, r)
-        # where s = (x, y) is the state,
-        # u is the control input, and r is the reward
-        trajectory = np.zeros((T, 3))
-        trajectory[0] = [prev_s, prev_u, R]
-
-        for i in range(1, T):
-            # compute the next state
-            s_i = self.get_next_state(prev_s, prev_u)
-            u_i = agent.get_best_action(s_i)
-            R = self.get_reward(s_i, u_i)
-
-            # add the new sequence to the trajectory
-            trajectory[i] = [s_i, u_i, R]
-
-            # update the previous state and control input
-            prev_s = s_i
-            prev_u = u_i
-
-        return trajectory
-            
-
 
 class Agent:
     """
@@ -98,7 +30,18 @@ class Agent:
         self.s_to_index = {x_val: i for i, x_val in enumerate(self.X)}
         self.u_to_index = {u_val: i for i, u_val in enumerate(self.U)}
 
-        Q = np.zeros((self.X.size, self.V.size, self.U.size))
+        self.Q = np.zeros((self.X.size, self.V.size, self.U.size))
+
+    
+    def discretize_state(self, s):
+        """
+        Discretizes the state s = (x, v) to the nearest values in X and V.
+        """
+        x = s[0]
+        v = s[1]
+        x_discrete = self.X[np.argmin(np.abs(self.X - x))]
+        v_discrete = self.V[np.argmin(np.abs(self.V - v))]
+        return (x_discrete, v_discrete)
 
 
     def get_best_action(self, s):
@@ -106,6 +49,8 @@ class Agent:
         This function computes the best action for a given state s
         using the Q table.
         """
+        # transform the state into one of our discrete states
+        s = self.discretize_state(s)
         x_idx = self.s_to_index[s[0]]
         v_idx = self.s_to_index[s[1]]
         q_values = self.Q[x_idx, v_idx, :]
@@ -114,3 +59,78 @@ class Agent:
         best_action = self.U[best_action_idx]
 
         return best_action
+
+
+class CarModel:
+    """
+    This class defines the car for problem 1.
+    """
+
+    def __init__(self):
+        # size of each time step
+        self.delta = 0.1
+        self.step = np.linspace(0, self.delta)
+
+    def model(self, s, t, u):
+        dsdt = [ s[1], u  ]
+        return dsdt
+
+    def get_next_state(self, s, u):
+        """
+        This function computes the next state of the car given the
+        current state and the control input.
+        """
+        # compute the next state
+        y = odeint(self.model, s, self.step, args=(u,))
+        return y[-1]
+
+    def get_reward(self, s, u):
+        return 0
+
+
+    def generate_trajectory(self, s0, T, agent: Agent):
+        """
+        This function generates a trajectory of states s = (x, v), using
+        a Q table to select the control input at each time step.
+
+        s0: the initial state
+        T: the final time step such that s(t) is the terminal state
+        Q: the Q-table
+        """
+        prev_s = s0
+
+        # compute the next control input
+        prev_u = agent.get_best_action(prev_s)
+
+        # compute the next reward outside of the loop
+        R = self.get_reward(prev_s, prev_u)
+        
+        # let the trajectory be represented as a T x 3 array where
+        # each entry is (s, u, r)
+        # where s = (x, y) is the state,
+        # u is the control input, and r is the reward
+        trajectory = np.zeros((T,), dtype=object)
+        trajectory[0] = (prev_s, prev_u, R)
+
+        for i in range(1, T):
+            # compute the next state
+            s_i = self.get_next_state(prev_s, prev_u)
+            u_i = agent.get_best_action(s_i)
+            R = self.get_reward(s_i, u_i)
+
+            # add the new sequence to the trajectory
+            trajectory[i] = (s_i, u_i, R)
+
+            # update the previous state and control input
+            prev_s = s_i
+            prev_u = u_i
+
+        return trajectory
+            
+agent = Agent()
+s0 = np.array([1, -1])
+
+env = CarModel()
+T = 10
+trajectory = env.generate_trajectory(s0, T, agent)
+print(trajectory)

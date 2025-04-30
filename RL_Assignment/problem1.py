@@ -93,28 +93,47 @@ class CarModel:
         """
         reward = 0
         x, v = s
+        # next_x, next_v = next_s
 
-        # positive rewards
-        if x == 0 and v == 0:
+        goal_reward = 10
+        velocity_reward = -0.1 * abs(v)
+        position_reward = -0.5 * abs(x)
+        control_reward  = -0.01 * abs(u)
+
+        # Reward for reaching the goal
+        if x == 0.0 and v == 0.0:
+            reward += goal_reward
+
+        # Punish for being very far away from the goal
+        if abs(x) > 5:
+            reward -= goal_reward
+
+        # encourage moving towards the goal
+        # if abs(next_x) < abs(x):
+        #     reward += position_reward
+
+        if abs(x) < 0.5 and abs(v) < 0.5:
             reward += 5
-        if v == 0 and u == 0:
-            reward += 1
-        if x != 0 and np.sign(x) != np.sign(v):
-            reward += 3
-        if v != 0 and np.sign(v) != np.sign(u):
-            reward += 3
 
-        # negative rewards
-        if x != 0:
-            reward -= 1*x
-        if x == 0 and v != 0:
-            reward -= 5
-        if v == 0 and u != 0:
-            reward -= 1
+        if (abs(x) < 0.5 and abs(v) < 0.5) and abs(u) < 0.01:
+            # bonus points for keeping the acceleration low
+            # if the car is close to the goal
+            reward += 5
+
+        # punish for moving away from the goal
         if x != 0 and np.sign(x) == np.sign(v):
-            reward -= 1*x
+            reward += velocity_reward
+
+        # punish the model when the position is near 0,
+        # and the velocity and acceleration are high
+        if abs(x) < 0.5 and abs(v) > 0.5:
+            reward += velocity_reward
+        
+        if abs(x) < 0.5 and abs(u) > 0.5:
+            reward += control_reward
+
         if v != 0 and np.sign(v) == np.sign(u):
-            reward -= 1*v
+            reward += control_reward
 
         return reward
 
@@ -159,7 +178,7 @@ class CarModel:
         return trajectory
             
 agent = Agent()
-s0 = np.array([1, -1])
+s0 = (1, -1)
 
 env = CarModel()
 T = 10

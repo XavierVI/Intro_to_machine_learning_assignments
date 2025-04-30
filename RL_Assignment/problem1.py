@@ -85,7 +85,38 @@ class CarModel:
         return y[-1]
 
     def get_reward(self, s, u):
-        return 0
+        """
+        This function goes through a sequence of steps to accumulate
+        the reward, such that we punish the agent when preventing the
+        state from being (0, 0) and reward it when it is at or reaching
+        (0, 0).
+        """
+        reward = 0
+        x, v = s
+
+        # positive rewards
+        if x == 0 and v == 0:
+            reward += 5
+        if v == 0 and u == 0:
+            reward += 1
+        if x != 0 and np.sign(x) != np.sign(v):
+            reward += 3
+        if v != 0 and np.sign(v) != np.sign(u):
+            reward += 3
+
+        # negative rewards
+        if x != 0:
+            reward -= 1*x
+        if x == 0 and v != 0:
+            reward -= 5
+        if v == 0 and u != 0:
+            reward -= 1
+        if x != 0 and np.sign(x) == np.sign(v):
+            reward -= 1*x
+        if v != 0 and np.sign(v) == np.sign(u):
+            reward -= 1*v
+
+        return reward
 
 
     def generate_trajectory(self, s0, T, agent: Agent):

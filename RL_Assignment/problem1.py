@@ -278,16 +278,29 @@ def evaluate_policy(agent: Agent, env: CarModel, num_episodes=10, time_steps=10)
         random_idx1 = np.random.default_rng(1).choice(agent.X.size)
         random_idx2 = np.random.default_rng(1).choice(agent.V.size)
         s0 = (agent.X[random_idx1], agent.V[random_idx2])
+        axes[0].plot(s0[1], s0[0], "bo", label="s0 episode" + str(episode))
 
         # generate the trajectory
         trajectory = env.generate_trajectory(s0, time_steps, agent)
+        axes[0].plot(trajectory[:, 1], trajectory[:, 0], label="episode" + str(episode))
         
         history[episode] = np.sum(trajectory[:, 3])
-        plot_trajectory(trajectory, axes[0], f"Episode {episode}")
-        plot_history(history, axes[1], f"Episode {episode}")
         pbar.update(1)
 
     pbar.stop()
+
+    axes[0].plot(0, 0, "ro", label="Goal")
+    axes[0].set_xlabel("v")
+    axes[0].set_ylabel("x")
+    axes[0].set_title("Trajectory")
+    # axes[0].legend(["episode" + str(i) for i in range(num_episodes)] + ["Goal"])
+    axes[0].grid()
+
+    axes[1].plot(history)
+    axes[1].set_xlabel("Episode")
+    axes[1].set_ylabel("Reward")
+    axes[1].set_title("Reward History")
+    axes[1].grid()
 
     plt.suptitle("Evaluation for Q Table", fontsize=16)
     plt.tight_layout()
@@ -297,32 +310,14 @@ def evaluate_policy(agent: Agent, env: CarModel, num_episodes=10, time_steps=10)
     return history
 
 
-def plot_trajectory(trajectory, ax, label):
-    # trajectory
-    ax.plot(trajectory[:, 1], trajectory[:, 0], label=label)
-    ax.plot(0, 0, "ro", label="Goal")
-    ax.set_xlabel("v")
-    ax.set_ylabel("x")
-    ax.set_title("Trajectory")
-    ax.grid()
-
-
-def plot_history(history, ax, label):
-    # plotting reward history and trajectory
-    ax.plot(history, label=label)
-    ax.set_xlabel("Episode")
-    ax.set_ylabel("Reward")
-    ax.set_title("Reward History")
-    ax.grid()
-
         
 time_steps = 100
 num_episodes = 100
 
 agent = Agent(
-    alpha=0.9,
-    gamma=0.5,
-    epsilon=0.1
+    alpha=0.1,
+    gamma=0.9,
+    epsilon=0.4
 )
 environment = CarModel()
 history = Q_learning(
@@ -341,7 +336,7 @@ eval_history = evaluate_policy(
     agent,
     environment,
     num_episodes=3,
-    time_steps=time_steps
+    time_steps=50
 )
 
 

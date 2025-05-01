@@ -128,44 +128,40 @@ class CarModel:
         # next_x, next_v = next_s
 
         goal_reward = 10
-        velocity_reward = -0.1 * abs(v)
-        position_reward = -0.5 * abs(x)
-        control_reward  = -0.01 * abs(u)
+        velocity_reward = 0.1 * abs(v)
+        position_reward = 0.5 * abs(x)
+        control_reward  = 0.01 * abs(u)
 
         # Reward for reaching the goal
         if x == 0.0 and v == 0.0:
             reward += goal_reward
 
+        # encourage moving towards the goal
+        if x != 0 and np.sign(x) != np.sign(v):
+            reward += velocity_reward
+
+        if v != 0 and np.sign(v) != np.sign(u):
+            reward += control_reward
+
+        if abs(x) < 0.1 and abs(v) < 0.:
+            reward += 5
+
         # Punish for being very far away from the goal
         if abs(x) > 5:
             reward -= goal_reward
 
-        # encourage moving towards the goal
-        # if abs(next_x) < abs(x):
-        #     reward += position_reward
-
-        if abs(x) < 0.5 and abs(v) < 0.5:
-            reward += 5
-
-        if (abs(x) < 0.5 and abs(v) < 0.5) and abs(u) < 0.01:
-            # bonus points for keeping the acceleration low
-            # if the car is close to the goal
-            reward += 5
-
         # punish for moving away from the goal
         if x != 0 and np.sign(x) == np.sign(v):
-            reward += velocity_reward
+            reward -= position_reward
 
-        # punish the model when the position is near 0,
-        # and the velocity and acceleration are high
-        if abs(x) < 0.5 and abs(v) > 0.5:
-            reward += velocity_reward
-        
-        if abs(x) < 0.5 and abs(u) > 0.5:
-            reward += control_reward
+        if x == 0 and (v != 0 or u != 0):
+            reward -= position_reward
 
         if v != 0 and np.sign(v) == np.sign(u):
-            reward += control_reward
+            reward -= control_reward
+        
+        if abs(x) < 0.5 and abs(u) > 0.5:
+            reward -= control_reward
 
         return reward
 
@@ -191,8 +187,8 @@ class CarModel:
         # each entry is (s, u, r)
         # where s = (x, y) is the state,
         # u is the control input, and r is the reward
-        trajectory = np.zeros((T,), dtype=object)
-        trajectory[0] = (prev_s, prev_u, R)
+        trajectory = np.zeros((T, 4))
+        trajectory[0] = (prev_s[0], prev_s[1], prev_u, R)
 
         for i in range(1, T):
             # compute the next state
@@ -201,7 +197,16 @@ class CarModel:
             R = self.get_reward(s_i, u_i)
 
             # add the new sequence to the trajectory
-            trajectory[i] = (s_i, u_i, R)
+            trajectory[i] = [s_i[0], s_i[1], u_i, R]
+
+            # early stopping condition
+            if s_i[0] == 0 and s_i[1] == 0:
+                # if the car is at the goal, break
+                break
+
+            elif abs(s_i[0]) >= 5 or abs(s_i[1]) >= 5:
+                # if the car is out of bounds, break
+                break
 
             # update the previous state and control input
             prev_s = s_i
@@ -217,7 +222,7 @@ def Q_learning(agent: Agent, env: CarModel, num_episodes=50, time_steps=10):
     num_episodes: the number of episodes to run
     
     """
-    history = []
+    history = np.zeros((num_episodes,))
     pbar = pyprind.ProgBar(num_episodes, title="Training", width=40)
 
     for episode in range(num_episodes):
@@ -247,40 +252,97 @@ def Q_learning(agent: Agent, env: CarModel, num_episodes=50, time_steps=10):
                 # if the car is out of bounds, break
                 break
         
-        history.append(final_reward)
+        history[episode] = final_reward
         pbar.update(1)
 
     pbar.stop()
 
     return history
 
-        
 
-agent = Agent(state_space_size=21)
+def evaluate_policy(agent: Agent, env: CarModel, num_episodes=10, time_steps=10):
+    """
+    This function evaluates the policy learned by the agent.
+    It runs the agent for a number of episodes and returns the
+    average reward.
+    """
+    # stores the average reward for each episode
+    # and the number of steps taken
+    history = np.zeros((num_episodes,))
+    pbar = pyprind.ProgBar(num_episodes, title="Evaluating", width=40)
+
+    fig, axes = plt.subplots(1, 2, figsize=(10, 8))
+
+    for episode in range(num_episodes):
+        # randomly select the initial state from X and V
+        random_idx1 = np.random.default_rng(1).choice(agent.X.size)
+        random_idx2 = np.random.default_rng(1).choice(agent.V.size)
+        s0 = (agent.X[random_idx1], agent.V[random_idx2])
+
+        # generate the trajectory
+        trajectory = env.generate_trajectory(s0, time_steps, agent)
+        
+        history[episode] = np.sum(trajectory[:, 3])
+        plot_trajectory(trajectory, axes[0], f"Episode {episode}")
+        plot_history(history, axes[1], f"Episode {episode}")
+        pbar.update(1)
+
+    pbar.stop()
+
+    plt.suptitle("Evaluation for Q Table", fontsize=16)
+    plt.tight_layout()
+    # plt.savefig(fname="./problem1_figs/problem1-3.png", dpi=300)
+    plt.show()
+
+    return history
+
+
+def plot_trajectory(trajectory, ax, label):
+    # trajectory
+    ax.plot(trajectory[:, 1], trajectory[:, 0], label=label)
+    ax.plot(0, 0, "ro", label="Goal")
+    ax.set_xlabel("v")
+    ax.set_ylabel("x")
+    ax.set_title("Trajectory")
+    ax.grid()
+
+
+def plot_history(history, ax, label):
+    # plotting reward history and trajectory
+    ax.plot(history, label=label)
+    ax.set_xlabel("Episode")
+    ax.set_ylabel("Reward")
+    ax.set_title("Reward History")
+    ax.grid()
+
+        
+time_steps = 100
+num_episodes = 100
+
+agent = Agent(
+    alpha=0.9,
+    gamma=0.5,
+    epsilon=0.1
+)
 environment = CarModel()
-history = Q_learning(agent, environment, num_episodes=50, time_steps=10)
+history = Q_learning(
+    agent,
+    environment,
+    num_episodes=num_episodes,
+    time_steps=time_steps
+)
 
 # randomly select the initial state from X and V
 random_idx1 = np.random.default_rng(1).choice(agent.X.size)
 random_idx2 = np.random.default_rng(1).choice(agent.V.size)
 s0 = (agent.X[random_idx1], agent.V[random_idx2])
 
-trajectory = environment.generate_trajectory(s0, 10, agent)
-print(trajectory[0])
+eval_history = evaluate_policy(
+    agent,
+    environment,
+    num_episodes=3,
+    time_steps=time_steps
+)
 
-#### plotting reward history and trajectory
-fig, axes = plt.subplots(2, 1, figsize=(10, 10))
 
-# trajectory
-axes[0].plot(trajectory[:][0][0][1], trajectory[:][0][0][0])
-axes[0].set_xlabel("v")
-axes[0].set_ylabel("x")
-axes[0].set_title("Trajectory")
-
-# history
-axes[1].plot(history)
-axes[1].set_xlabel("Episode")
-axes[1].set_ylabel("Reward")
-axes[1].set_title("Reward History")
-plt.tight_layout()
-plt.show()
+print("Average reward per episode: ", eval_history[:])

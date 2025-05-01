@@ -2,6 +2,7 @@ import numpy as np
 from scipy.integrate import odeint
 import pyprind
 
+import matplotlib.pyplot as plt
 """
 
 """
@@ -12,14 +13,10 @@ class Agent:
     This class defines the agent for problem 1.
     """
 
-    def __init__(self, state_space_size=21):
-        self.car = CarModel()
-        self.Q = np.zeros((21, 21, 13))
-        self.alpha = 0.1
-        self.gamma = 0.9
-        self.epsilon = 0.1
-        self.epsilon_decay = 0.99
-        self.epsilon_min = 0.01
+    def __init__(self, alpha=0.1, gamma=0.9, epsilon=0.1, state_space_size=21):
+        self.alpha = alpha
+        self.gamma = gamma
+        self.epsilon = epsilon
 
         # state space and action space
         self.X = np.linspace(-5, 5, state_space_size)
@@ -52,6 +49,11 @@ class Agent:
         This function computes the best action for a given state s
         using the Q table.
         """
+        # for the epsilon-greedy policy, we select a random action
+        # with probability epsilon
+        if np.random.default_rng().uniform() < self.epsilon:
+            return np.random.choice(self.U)
+
         # transform the state into one of our discrete states
         s = self.discretize_state(s)
         x_idx = self.s_to_index[s[0]]
@@ -62,6 +64,7 @@ class Agent:
         best_action = self.U[best_action_idx]
 
         return best_action
+
 
     def update_Q(self, s, u, r, next_s):
         """
@@ -88,7 +91,6 @@ class Agent:
         self.Q[x_idx, v_idx, u_idx] += \
             self.alpha * (r + self.gamma * max_next_s - self.Q[x_idx, v_idx, u_idx])
 
-        pass
 
 
 class CarModel:
@@ -231,7 +233,7 @@ def Q_learning(agent: Agent, env: CarModel, num_episodes=50, time_steps=10):
             next_s = agent.discretize_state(env.get_next_state(s_i, u))
             reward = env.get_reward(s_i, u)
 
-            print(f"Episode {episode}, Time step {t}: s = {s_i}, u = {u}, r = {reward}")
+            # print(f"Episode {episode}, Time step {t}: s = {s_i}, u = {u}, r = {reward}")
             agent.update_Q(s_i, u, reward, next_s)
             
             s_i = next_s
@@ -257,4 +259,28 @@ def Q_learning(agent: Agent, env: CarModel, num_episodes=50, time_steps=10):
 agent = Agent(state_space_size=21)
 environment = CarModel()
 history = Q_learning(agent, environment, num_episodes=50, time_steps=10)
-print(history)
+
+# randomly select the initial state from X and V
+random_idx1 = np.random.default_rng(1).choice(agent.X.size)
+random_idx2 = np.random.default_rng(1).choice(agent.V.size)
+s0 = (agent.X[random_idx1], agent.V[random_idx2])
+
+trajectory = environment.generate_trajectory(s0, 10, agent)
+print(trajectory[0])
+
+#### plotting reward history and trajectory
+fig, axes = plt.subplots(2, 1, figsize=(10, 10))
+
+# trajectory
+axes[0].plot(trajectory[:][0][0][1], trajectory[:][0][0][0])
+axes[0].set_xlabel("v")
+axes[0].set_ylabel("x")
+axes[0].set_title("Trajectory")
+
+# history
+axes[1].plot(history)
+axes[1].set_xlabel("Episode")
+axes[1].set_ylabel("Reward")
+axes[1].set_title("Reward History")
+plt.tight_layout()
+plt.show()

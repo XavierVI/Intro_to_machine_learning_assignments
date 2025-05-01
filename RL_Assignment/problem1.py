@@ -127,10 +127,10 @@ class CarModel:
         x, v = s
         # next_x, next_v = next_s
 
-        goal_reward = 10
+        goal_reward = 20
         velocity_reward = 0.1 * abs(v)
         position_reward = 0.5 * abs(x)
-        control_reward  = 0.01 * abs(u)
+        control_reward  = 0.1 * abs(u)
 
         # Reward for reaching the goal
         if x == 0.0 and v == 0.0:
@@ -199,15 +199,6 @@ class CarModel:
             # add the new sequence to the trajectory
             trajectory[i] = [s_i[0], s_i[1], u_i, R]
 
-            # early stopping condition
-            if s_i[0] == 0 and s_i[1] == 0:
-                # if the car is at the goal, break
-                break
-
-            elif abs(s_i[0]) >= 5 or abs(s_i[1]) >= 5:
-                # if the car is out of bounds, break
-                break
-
             # update the previous state and control input
             prev_s = s_i
             prev_u = u_i
@@ -222,7 +213,7 @@ def Q_learning(agent: Agent, env: CarModel, num_episodes=50, time_steps=10):
     num_episodes: the number of episodes to run
     
     """
-    history = np.zeros((num_episodes,))
+    history = []
     pbar = pyprind.ProgBar(num_episodes, title="Training", width=40)
 
     for episode in range(num_episodes):
@@ -243,16 +234,8 @@ def Q_learning(agent: Agent, env: CarModel, num_episodes=50, time_steps=10):
             
             s_i = next_s
             final_reward += reward
-
-            if s_i[0] == 0 and s_i[1] == 0:
-                # if the car is at the goal, break
-                break
-
-            elif abs(s_i[0]) >= 5 or abs(s_i[1]) >= 5:
-                # if the car is out of bounds, break
-                break
         
-        history[episode] = final_reward
+        history.append(final_reward)
         pbar.update(1)
 
     pbar.stop()
@@ -268,41 +251,51 @@ def evaluate_policy(agent: Agent, env: CarModel, num_episodes=10, time_steps=10)
     """
     # stores the average reward for each episode
     # and the number of steps taken
-    history = np.zeros((num_episodes,))
+    # history = np.array([])
     pbar = pyprind.ProgBar(num_episodes, title="Evaluating", width=40)
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 8))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    fig2, ax = plt.subplots(1, 1, figsize=(12, 6))
 
     for episode in range(num_episodes):
         # randomly select the initial state from X and V
         random_idx1 = np.random.default_rng(1).choice(agent.X.size)
         random_idx2 = np.random.default_rng(1).choice(agent.V.size)
         s0 = (agent.X[random_idx1], agent.V[random_idx2])
-        axes[0].plot(s0[1], s0[0], "bo", label="s0 episode" + str(episode))
-
         # generate the trajectory
         trajectory = env.generate_trajectory(s0, time_steps, agent)
-        axes[0].plot(trajectory[:, 1], trajectory[:, 0], label="episode" + str(episode))
         
-        history[episode] = np.sum(trajectory[:, 3])
+        # plotting
+        axes[0].plot(range(time_steps), trajectory[:, 0], label="episode " + str(episode))
+        axes[1].plot(range(time_steps), trajectory[:, 1], label="episode " + str(episode))
+
+        ax.plot(trajectory[:, 3], '-', label="episode " + str(episode))
+        ax.legend(loc="lower left")
+        
+        
+        # history = np.append(history, trajectory[:, 3])
         pbar.update(1)
 
     pbar.stop()
 
-    axes[0].plot(0, 0, "ro", label="Goal")
-    axes[0].set_xlabel("v")
+    axes[0].set_xlabel("t")
     axes[0].set_ylabel("x")
-    axes[0].set_title("Trajectory")
-    # axes[0].legend(["episode" + str(i) for i in range(num_episodes)] + ["Goal"])
+    axes[0].set_title("Position over time")
     axes[0].grid()
-
-    axes[1].plot(history)
-    axes[1].set_xlabel("Episode")
-    axes[1].set_ylabel("Reward")
-    axes[1].set_title("Reward History")
+    axes[0].legend(loc="lower left")
+    
+    axes[1].set_xlabel("t")
+    axes[1].set_ylabel("v")
+    axes[1].set_title("Velocity over time")
     axes[1].grid()
+    axes[1].legend(loc="lower left")
 
-    plt.suptitle("Evaluation for Q Table", fontsize=16)
+    ax.set_xlabel("Time step (t)")
+    ax.set_ylabel("Reward (r)")
+    ax.set_title("Reward history per episode")
+    ax.legend(loc="lower left")
+    ax.grid()
+
     plt.tight_layout()
     # plt.savefig(fname="./problem1_figs/problem1-3.png", dpi=300)
     plt.show()
@@ -338,6 +331,3 @@ eval_history = evaluate_policy(
     num_episodes=3,
     time_steps=50
 )
-
-
-print("Average reward per episode: ", eval_history[:])

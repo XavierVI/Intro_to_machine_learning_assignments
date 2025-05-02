@@ -1,6 +1,6 @@
 import gymnasium
 
-import BMPtoARR as BA
+import BMPtoARR2 as BA
 import numpy as np
 import random
 from gymnasium import Env

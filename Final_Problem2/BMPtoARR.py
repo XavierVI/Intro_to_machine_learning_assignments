@@ -57,5 +57,5 @@ compressed_map2 = compressbmp(bw_img2,11,11)
 compressed_map1 = Image.fromarray(compressed_map1)
 compressed_map2 = Image.fromarray(compressed_map2)
 
-compressed_map1.convert("L").save("./maps/map1_compressed(48,48).bmp")
-compressed_map2.convert("L").save("./maps/map2_compressed(48,48).bmp")
+compressed_map1.convert("1").save("./maps/map1_compressed(48,48).bmp")
+compressed_map2.convert("1").save("./maps/map2_compressed(48,48).bmp")

@@ -14,10 +14,10 @@ bw_img1 = np.array(map_1)
 bw_img2 = np.array(map_2)
 
 def checkscope(pos_x, pos_y, x_size, y_size, inputarray): #This function hopefully can be used to be iterated through the input array at given cords and return if that scope is all white or not
-    print(f"Checking ({pos_x}, {pos_y})")
+   # print(f"Checking ({pos_x}, {pos_y})")
     for x in range(pos_x, pos_x + x_size-1):
         for y in range(pos_y, pos_y + y_size-1):
-            print(f"inner array check ({x}, {y})")
+            #print(f"inner array check ({x}, {y})")
             x -= 1
             y -= 1
             if inputarray[x][y] == 1:
@@ -44,7 +44,7 @@ def compressbmp(inputarray, ab_sizex, ab_sizey): # if ab (x,y) = 11, then output
 
     for x in range(0,int(inputarray.shape[0] / ab_sizex)):
         for y in range(0,int(inputarray.shape[1] / ab_sizey)):
-            print(f"{cordsinter_arr[x,y][0]}, {cordsinter_arr[x,y][1]}")
+           # print(f"{cordsinter_arr[x,y][0]}, {cordsinter_arr[x,y][1]}")
             if checkscope(pos_x=cordsinter_arr[x,y][0], pos_y=cordsinter_arr[x,y][1], x_size=ab_sizex, y_size=ab_sizey, inputarray=inputarray):
                 out_arr[x, y] = 255
             else:

@@ -24,17 +24,16 @@ map1 = BA.compressbmp(bw_img1,11,11)
 map2 = BA.compressbmp(bw_img2,11,11)
 
 def get_obst(inarr):
-    out_arr = []
-    print(inarr[0])
-    print(inarr[1])
-    print(inarr[0,0])
-    for x in inarr[0]:
-        for y in inarr[1]:
-            if BA.checkscope(x,y,1,1,inarr) == False:
+    out_arr=[]
+
+    for x in range(0,len(inarr[0])):
+        for y in range(0,len(inarr[1])):
+            if BA.checkscope(x,y,1,1,inarr) == True:
+                print(x,y)
                 out_arr.append((x,y))
             else:
                 pass
-        return out_arr
+    return out_arr
 
 class BENV(Env):
     def __init__(self, inputmap):
@@ -44,9 +43,8 @@ class BENV(Env):
         self.cumul_r = 0
 
         self.player_pos = random.randrange(0, self.sq)
-        self.win_pos = random.randrange(0, self.sq)
-        self.lose_pos = get_obst(inputmap)  # pick one position
-
+        self.win_pos =  random.randrange(0, self.sq)
+        self.lose_pos = get_obst(inputmap)
         while self.win_pos == self.player_pos:
             self.win_pos = random.randrange(0, self.sq)
         while self.lose_pos == self.win_pos or self.lose_pos == self.player_pos:
@@ -55,6 +53,7 @@ class BENV(Env):
         self.state[self.player_pos] = PLAYER
         self.state[self.win_pos] = WIN
         for i in range(0,len(self.lose_pos)):
+            print(self.lose_pos[i])
             self.state[self.lose_pos[i]] = LOSE
 
         self.state = np.array(self.state, dtype=np.int16)

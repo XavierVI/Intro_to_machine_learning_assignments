@@ -3,10 +3,8 @@ from scipy.integrate import odeint
 import pyprind
 
 import matplotlib.pyplot as plt
-"""
 
-"""
-
+import time
 
 class Agent:
     """
@@ -125,8 +123,11 @@ class CarModel:
 
         reward = 0
         goal_reward = 10
+
+        # Penalties for position, velocity, and control input
+        # These penalize the agent for being away from the goal
         position_penalty = -0.2 * abs(next_x)
-        velocity_penalty = -0.1 * abs(next_v)
+        velocity_penalty = -0.05 * abs(next_v)
         control_penalty = -0.01 * abs(u)
 
         # Reward for reaching the goal (using a threshold)
@@ -223,7 +224,13 @@ def Q_learning(agent: Agent, env: CarModel, num_episodes=50, time_steps=10):
     return history
 
 
-def evaluate_policy(agent: Agent, env: CarModel, num_episodes=10, time_steps=10):
+def evaluate_policy(
+        agent: Agent,
+        env: CarModel,
+        num_episodes=10,
+        time_steps=10,
+        plot_figure=True
+    ):
     """
     This function evaluates the policy learned by the agent.
     It runs the agent for a number of episodes and returns the
@@ -234,8 +241,17 @@ def evaluate_policy(agent: Agent, env: CarModel, num_episodes=10, time_steps=10)
     # history = np.array([])
     pbar = pyprind.ProgBar(num_episodes, title="Evaluating policy...", width=40)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-    fig2, ax = plt.subplots(1, 1, figsize=(12, 6))
+    fig = plt.figure(figsize=(12, 6))
+
+    # Top row - two subplots side by side
+    ax1 = fig.add_subplot(2, 2, 1)  # 2 rows, 2 columns, first subplot
+    ax2 = fig.add_subplot(2, 2, 2)  # 2 rows, 2 columns, second subplot
+
+    # Bottom row - one subplot spanning the width
+    ax3 = fig.add_subplot(2, 1, 2)  # 2 rows, 1 column, second subplot (spanning)
+
+    # average distance and reward for each episode
+    stats = np.zeros((num_episodes, 4))
 
     for episode in range(num_episodes):
         # randomly select the initial state from X and V
@@ -244,66 +260,203 @@ def evaluate_policy(agent: Agent, env: CarModel, num_episodes=10, time_steps=10)
         s0 = (agent.X[random_idx1], agent.V[random_idx2])
         # generate the trajectory
         trajectory = env.generate_trajectory(s0, time_steps, agent)
+
+        # accumulating the distance from the desired state
+        stats[episode, 0] = np.mean(np.abs(trajectory[:, 0]))
+        stats[episode, 1] = np.std(trajectory[:, 0])
+        stats[episode, 2] = np.mean(np.abs(trajectory[:, 3]))
+        stats[episode, 3] = np.std(trajectory[:, 3])
         
         # plotting
-        axes[0].plot(range(time_steps), trajectory[:, 0], label="episode " + str(episode))
-        axes[1].plot(range(time_steps), trajectory[:, 1], label="episode " + str(episode))
+        ax1.plot(range(time_steps), trajectory[:, 0], label="episode " + str(episode))
+        ax2.plot(range(time_steps), trajectory[:, 1], label="episode " + str(episode))
 
-        ax.plot(trajectory[:, 3], '-', label="episode " + str(episode))
-        ax.legend(loc="lower left")
-        
-        
-        # history = np.append(history, trajectory[:, 3])
+        ax3.plot(trajectory[:, 3], '-', label="episode " + str(episode))
+                
         pbar.update(1)
 
     pbar.stop()
 
-    axes[0].set_xlabel("t")
-    axes[0].set_ylabel("x")
-    axes[0].set_title("Position over time")
-    axes[0].grid()
-    axes[0].legend(loc="lower left")
+    ax1.set_xlabel("t")
+    ax1.set_ylabel("x")
+    ax1.set_ylim(-5, 5)
+    ax1.set_title("Position over time")
+    ax1.grid()
+    ax1.legend(loc="lower left")
     
-    axes[1].set_xlabel("t")
-    axes[1].set_ylabel("v")
-    axes[1].set_title("Velocity over time")
-    axes[1].grid()
-    axes[1].legend(loc="lower left")
+    ax2.set_xlabel("t")
+    ax2.set_ylabel("v")
+    ax2.set_ylim(-5, 5)
+    ax2.set_title("Velocity over time")
+    ax2.grid()
+    ax2.legend(loc="lower left")
 
-    ax.set_xlabel("Time step (t)")
-    ax.set_ylabel("Reward (r)")
-    ax.set_title("Reward history per episode")
-    ax.legend(loc="lower left")
-    ax.grid()
+    ax3.set_xlabel("Time step (t)")
+    ax3.set_ylabel("Reward (r)")
+    ax3.set_title("Reward history per episode")
+    ax3.legend(loc="lower left")
+    ax3.grid()
 
     plt.tight_layout()
-    # plt.savefig(fname="./problem1_figs/problem1-3.png", dpi=300)
-    plt.show()
+    # plt.savefig(fname=f"./problem1_figs/problem1_{file_header}.png", dpi=300)
+    if plot_figure:
+        plt.show()
 
-    return history
+    return stats
 
+def length_of_time_steps():
+    time_steps = [20, 50, 100, 500]
+    environment = CarModel()
+    table = []
 
+    agent = Agent(
+        alpha=0.01,
+        gamma=0.9,
+        # use the best state space size
+        state_space_size=101
+    )
+    _ = Q_learning(
+        agent,
+        environment,
+        num_episodes=1000,
+        time_steps=500
+    )
+
+    for time_step in time_steps:
         
-time_steps = 200
-num_episodes = 100
+        start = time.time()
+        stats = evaluate_policy(
+            agent,
+            environment,
+            num_episodes=4,
+            time_steps=time_step,
+            plot_figure=True
+        )
+        end = time.time()
 
-agent = Agent(
-    alpha=0.1,
-    gamma=0.9,
-    epsilon=0.1
-)
-environment = CarModel()
+        for [avg_dist, std_dist, avg_reward, std_reward] in stats:
+            table.append(
+                f"{time_step} & {avg_dist:.2f} ± {std_dist:.2f} & {avg_reward:.2f} ± {std_reward:.2f} & {end - start:.2f} \\\\")
+    print("Time steps Test Accuracy Table")
+    print("=============================================")
+    for row in table:
+        print(row)
 
-history = Q_learning(
-    agent,
-    environment,
-    num_episodes=num_episodes,
-    time_steps=time_steps
-)
 
-eval_history = evaluate_policy(
-    agent,
-    environment,
-    num_episodes=3,
-    time_steps=100
-)
+def test_episodes_and_time_steps():
+    episodes_and_time_steps = [
+        (200, 100),
+        (500, 200),
+        (1000, 500),
+    ]
+    environment = CarModel()
+    table = []
+
+    for (episodes, time_steps) in episodes_and_time_steps:
+        agent = Agent(
+            alpha=0.01,
+            gamma=0.9,
+            # use the best state space size
+            state_space_size=101
+        )
+        start = time.time()
+        _ = Q_learning(
+            agent,
+            environment,
+            num_episodes=episodes,
+            time_steps=time_steps
+        )
+        end = time.time()
+        stats = evaluate_policy(
+            agent,
+            environment,
+            num_episodes=4,
+            time_steps=20,
+            plot_figure=False
+        )
+        
+        for [avg_dist, std_dist, avg_reward, std_reward] in stats:
+            table.append(f"{episodes} & {time_steps} & {avg_dist:.2f} ± {std_dist:.2f} & {avg_reward:.2f} ± {std_reward:.2f} & {end - start:.2f} \\\\")
+
+    for row in table:
+        print(row)
+
+
+def test_state_space():
+    state_space_sizes = [21, 51, 101]
+    environment = CarModel()
+    table = []
+
+    # Changing the size of the state space
+    for state_space_size in state_space_sizes:
+        agent = Agent(
+            alpha=0.01,
+            gamma=0.9,
+            state_space_size=state_space_size
+        )
+        _ = Q_learning(
+            agent,
+            environment,
+            num_episodes=1000,
+            time_steps=500
+        )
+        stats = evaluate_policy(
+            agent,
+            environment,
+            num_episodes=4,
+            time_steps=20,
+            plot_figure=False
+        )
+        for avg_dist, std_dist, avg_reward, std_reward in stats:
+            table.append(
+                f"{state_space_size} & {avg_dist:.2f} ± {std_dist:.2f} & {avg_reward:.2f} ± {std_reward:.2f} \\\\")
+
+    print("State space table")
+    print("=============================================")
+    for row in table:
+        print(row)
+
+
+def test_hyperparams():
+    alphas = [0.01, 0.1]
+    gammas = [0.4, 0.9]
+    environment = CarModel()
+    table = []
+
+    
+    for a in alphas:
+        for g in gammas:
+            agent = Agent(
+                alpha=a,
+                gamma=g,
+                state_space_size=101
+            )
+            _ = Q_learning(
+                agent,
+                environment,
+                num_episodes=1000,
+                time_steps=500
+            )
+            stats = evaluate_policy(
+                agent,
+                environment,
+                num_episodes=4,
+                time_steps=20,
+                plot_figure=False
+            )
+            for avg_dist, std_dist, avg_reward, std_reward in stats:
+                table.append(
+                    f"{a} & {g} & {avg_dist:.2f} ± {std_dist:.2f} & {avg_reward:.2f} ± {std_reward:.2f} \\\\")
+
+    print("Hyperparameters table")
+    print("=============================================")
+    for row in table:
+        print(row)
+
+# length_of_time_steps()
+# test_state_space()
+# test_episodes_and_time_steps()
+test_hyperparams()
+
+
+

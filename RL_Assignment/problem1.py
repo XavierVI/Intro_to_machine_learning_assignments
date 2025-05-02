@@ -29,7 +29,9 @@ class Agent:
         self.s_to_index = {x_val: i for i, x_val in enumerate(self.X)}
         self.u_to_index = {u_val: i for i, u_val in enumerate(self.U)}
 
-        self.Q = np.zeros((self.X.size, self.V.size, self.U.size))
+        self.Q = np.random.default_rng(1).uniform(
+            size=(self.X.size, self.V.size, self.U.size)
+        )
 
     
     def discretize_state(self, s):
@@ -116,52 +118,32 @@ class CarModel:
         y = odeint(self.model, s, self.step, args=(u,))
         return y[-1]
 
-    def get_reward(self, s, u):
-        """
-        This function goes through a sequence of steps to accumulate
-        the reward, such that we punish the agent when preventing the
-        state from being (0, 0) and reward it when it is at or reaching
-        (0, 0).
-        """
-        reward = 0
+
+    def get_reward(self, s, u, next_s):
         x, v = s
-        # next_x, next_v = next_s
+        next_x, next_v = next_s
 
-        goal_reward = 20
-        velocity_reward = 0.1 * abs(v)
-        position_reward = 0.5 * abs(x)
-        control_reward  = 0.1 * abs(u)
+        reward = 0
+        goal_reward = 10
+        position_penalty = -0.2 * abs(next_x)
+        velocity_penalty = -0.1 * abs(next_v)
+        control_penalty = -0.01 * abs(u)
 
-        # Reward for reaching the goal
-        if x == 0.0 and v == 0.0:
+        # Reward for reaching the goal (using a threshold)
+        if abs(next_x) < 0.1 and abs(next_v) < 0.1:
             reward += goal_reward
 
-        # encourage moving towards the goal
-        if x != 0 and np.sign(x) != np.sign(v):
-            reward += velocity_reward
+        reward += position_penalty + velocity_penalty + control_penalty
 
-        if v != 0 and np.sign(v) != np.sign(u):
-            reward += control_reward
+        # Encourage moving towards zero
+        if x * next_x < 0:  # x changed sign (crossed zero)
+            reward += 1
+        if v * next_v < 0:  # v changed sign (crossed zero)
+            reward += 0.5
 
-        if abs(x) < 0.1 and abs(v) < 0.:
-            reward += 5
-
-        # Punish for being very far away from the goal
-        if abs(x) > 5:
-            reward -= goal_reward
-
-        # punish for moving away from the goal
-        if x != 0 and np.sign(x) == np.sign(v):
-            reward -= position_reward
-
-        if x == 0 and (v != 0 or u != 0):
-            reward -= position_reward
-
-        if v != 0 and np.sign(v) == np.sign(u):
-            reward -= control_reward
-        
-        if abs(x) < 0.5 and abs(u) > 0.5:
-            reward -= control_reward
+        # Out-of-bounds penalty (softer)
+        if abs(next_x) > 5 or abs(next_v) > 5:
+            reward -= 5
 
         return reward
 
@@ -175,33 +157,31 @@ class CarModel:
         T: the final time step such that s(t) is the terminal state
         Q: the Q-table
         """
-        prev_s = s0
-
-        # compute the next control input
-        prev_u = agent.get_best_action(prev_s)
-
-        # compute the next reward outside of the loop
-        R = self.get_reward(prev_s, prev_u)
-        
         # let the trajectory be represented as a T x 3 array where
         # each entry is (s, u, r)
         # where s = (x, y) is the state,
         # u is the control input, and r is the reward
         trajectory = np.zeros((T, 4))
-        trajectory[0] = (prev_s[0], prev_s[1], prev_u, R)
+        prev_s = s0
+        # compute the next control input
+        prev_u = agent.get_best_action(prev_s)
+        
+        for i in range(0, T):
+            next_s = self.get_next_state(prev_s, prev_u)
+            # only used for the next iteration
+            next_u = agent.get_best_action(next_s)
 
-        for i in range(1, T):
-            # compute the next state
-            s_i = self.get_next_state(prev_s, prev_u)
-            u_i = agent.get_best_action(s_i)
-            R = self.get_reward(s_i, u_i)
+            # compute the reward using the current state and control input
+            # and the next state
+            R = self.get_reward(prev_s, prev_u, next_s)
 
             # add the new sequence to the trajectory
-            trajectory[i] = [s_i[0], s_i[1], u_i, R]
+            trajectory[i] = [prev_s[0], prev_s[1], prev_u, R]
 
             # update the previous state and control input
-            prev_s = s_i
-            prev_u = u_i
+            # for the next iteration
+            prev_s = next_s
+            prev_u = next_u
 
         return trajectory
             
@@ -214,7 +194,7 @@ def Q_learning(agent: Agent, env: CarModel, num_episodes=50, time_steps=10):
     
     """
     history = []
-    pbar = pyprind.ProgBar(num_episodes, title="Training", width=40)
+    pbar = pyprind.ProgBar(num_episodes, title="Optimizing policy...", width=40)
 
     for episode in range(num_episodes):
         # randomly select the initial state from X and V
@@ -227,7 +207,7 @@ def Q_learning(agent: Agent, env: CarModel, num_episodes=50, time_steps=10):
         for t in range(time_steps):
             u = agent.get_best_action(s_i)
             next_s = agent.discretize_state(env.get_next_state(s_i, u))
-            reward = env.get_reward(s_i, u)
+            reward = env.get_reward(s_i, u, next_s)
 
             # print(f"Episode {episode}, Time step {t}: s = {s_i}, u = {u}, r = {reward}")
             agent.update_Q(s_i, u, reward, next_s)
@@ -252,7 +232,7 @@ def evaluate_policy(agent: Agent, env: CarModel, num_episodes=10, time_steps=10)
     # stores the average reward for each episode
     # and the number of steps taken
     # history = np.array([])
-    pbar = pyprind.ProgBar(num_episodes, title="Evaluating", width=40)
+    pbar = pyprind.ProgBar(num_episodes, title="Evaluating policy...", width=40)
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
     fig2, ax = plt.subplots(1, 1, figsize=(12, 6))
@@ -304,15 +284,16 @@ def evaluate_policy(agent: Agent, env: CarModel, num_episodes=10, time_steps=10)
 
 
         
-time_steps = 100
+time_steps = 200
 num_episodes = 100
 
 agent = Agent(
     alpha=0.1,
     gamma=0.9,
-    epsilon=0.4
+    epsilon=0.1
 )
 environment = CarModel()
+
 history = Q_learning(
     agent,
     environment,
@@ -320,14 +301,9 @@ history = Q_learning(
     time_steps=time_steps
 )
 
-# randomly select the initial state from X and V
-random_idx1 = np.random.default_rng(1).choice(agent.X.size)
-random_idx2 = np.random.default_rng(1).choice(agent.V.size)
-s0 = (agent.X[random_idx1], agent.V[random_idx2])
-
 eval_history = evaluate_policy(
     agent,
     environment,
     num_episodes=3,
-    time_steps=50
+    time_steps=100
 )

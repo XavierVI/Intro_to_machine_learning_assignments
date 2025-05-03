@@ -7,7 +7,7 @@ class Agent:
         self.gamma = gamma
         self.epsilon = epsilon
 
-        self.q_table = np.zeros((environment.height, environment.width, len(environment.actions)))
+        self.q_table = np.zeros((environment.height, environment.width, 4))
 
         def choose_action(self, state):
             """

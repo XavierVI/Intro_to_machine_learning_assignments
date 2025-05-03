@@ -1,6 +1,6 @@
 import gymnasium
 
-import BMPtoARR2 as BA
+import BMPtoARR as BA
 import numpy as np
 import random
 from gymnasium import Env
@@ -23,13 +23,23 @@ bw_img2 = np.array(BA.Image.open("./maps/map2.bmp"))
 map1 = BA.compressbmp(bw_img1,11,11)
 map2 = BA.compressbmp(bw_img2,11,11)
 
+def get_indice(arr, inmap):
+    x = arr[0]
+    y = arr[1]
+    print(x,y)
+    #return ((y*inmap.shape[0]) + x)
+    if inmap.shape[0] >= inmap.shape[1]:
+        return (y*inmap.shape[0]) + x
+    if inmap.shape[0] < inmap.shape[1]:
+        return (x*inmap.shape[1]) + y
+
+
 def get_obst(inarr):
     out_arr=[]
-
     for x in range(0,len(inarr[0])):
         for y in range(0,len(inarr[1])):
-            if BA.checkscope(x,y,1,1,inarr) == True:
-                print(x,y)
+            if BA.checkscope(x,y,1,1,inarr) == False:
+                #print(x,y)
                 out_arr.append((x,y))
             else:
                 pass
@@ -38,6 +48,8 @@ def get_obst(inarr):
 class BENV(Env):
     def __init__(self, inputmap):
         self.inputmap = inputmap
+        self.height = inputmap.shape[0]
+        self.width = inputmap.shape[1]
         self.sq = int(inputmap.shape[0] * inputmap.shape[1])
         self.state = [NOTHING] * self.sq
         self.cumul_r = 0
@@ -45,6 +57,7 @@ class BENV(Env):
         self.player_pos = random.randrange(0, self.sq)
         self.win_pos =  random.randrange(0, self.sq)
         self.lose_pos = get_obst(inputmap)
+        #print(f"this is {self.lose_pos}")
         while self.win_pos == self.player_pos:
             self.win_pos = random.randrange(0, self.sq)
         while self.lose_pos == self.win_pos or self.lose_pos == self.player_pos:
@@ -53,11 +66,11 @@ class BENV(Env):
         self.state[self.player_pos] = PLAYER
         self.state[self.win_pos] = WIN
         for i in range(0,len(self.lose_pos)):
-            print(self.lose_pos[i])
-            self.state[self.lose_pos[i]] = LOSE
+            self.state[get_indice(self.lose_pos[i], self.inputmap)] = LOSE
 
         self.state = np.array(self.state, dtype=np.int16)
-        self.obser_sp = spaces.Box(0, 3, [self.sq], dtype=np.int16)
+        #print(self.state)
+        self.obser_sp = spaces.Box(0, 3, [self.sq], dtype=np.int8)
         self.action_sp = spaces.Discrete(4)
 
     def step(self, action):

@@ -7,8 +7,8 @@ import numpy as np
 World1 = E.returnmap1()
 World2 = E.returnmap2()
 
-agent1 = AA(World1)
-agent2 = AA(World2)
+agent1 = AA.Agent(World1)
+agent2 = AA.Agent(World2)
 
 
 

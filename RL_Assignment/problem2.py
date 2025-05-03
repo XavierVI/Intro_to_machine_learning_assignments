@@ -20,6 +20,9 @@ def load_maps():
     grid1 = np.array(bw_img1)
     grid2 = np.array(bw_img2)
 
+    print(grid1.shape)
+    print(grid2.shape)
+
     return (grid1, grid2)
 
 
@@ -75,8 +78,9 @@ class Environment:
 
 
 class Agent:
-    def __init__(self, environment: Environment):
+    def __init__(self, environment: Environment, epsilon):
         self.environment = environment
+        self.epsilon = epsilon
 
         self.q_table = np.zeros(
             (environment.grid.shape[0], environment.grid.shape[1], len(environment.actions)))
@@ -87,10 +91,28 @@ class Agent:
         """
         row, col = state
 
-        # if np.random.uniform() < self.epsilon:
-        #     return np.random.randint(0, len(self.env.actions))
+        if np.random.default_rng(1).uniform() < self.epsilon:
+            return np.random.randint(0, len(self.env.actions))
 
         return np.argmax(self.q_table[row, col])
+
+    def step(self, learning=False, alpha=0.01, gamma=0.9):
+        # get the current state from the environment
+        state = self.environment.state
+        # choose the direction
+        action = agent.choose_action(state)
+        next_s, reward, done = env.step(action)
+
+        agent.update_q_table(
+            state=state,
+            action=action,
+            reward=reward,
+            next_state=next_s,
+            alpha=alpha,
+            gamma=gamma
+        )
+
+        return next_s, reward, done
 
     def update_q_table(self,
         state,
@@ -134,25 +156,22 @@ def Q_learning(
         num_episodes, title="Optimizing policy...", width=40)
 
     for episode in range(num_episodes):
-        state = env.reset()
+        # reset environment to initial state
+        env.reset()
         avg_reward = 0
         num_steps = 0
 
         for step in range(max_steps):
-            action = agent.choose_action(state)
-            next_s, reward, done = env.step(action)
-            agent.update_q_table(
-                state=state,
-                action=action,
-                reward=reward,
-                next_state=next_s,
+            _, reward, done = agent.step(
                 alpha=alpha,
                 gamma=gamma
             )
 
-            state = next_s
             avg_reward += reward
             num_steps += 1
+
+            # break out of loop if we reached the goal
+            if done: break
 
         history.append((num_steps, avg_reward / num_steps))
         pbar.update(1)
@@ -162,7 +181,7 @@ def Q_learning(
     return history
 
 map1, map2 = load_maps()
-env = Environment(map1, (0, 0), (5, 6))
+env = Environment(map1, (4, 4), (40, 40))
 agent = Agent(env)
 history = Q_learning(
     agent=agent,

@@ -33,6 +33,17 @@ def get_indice(arr, inmap):
     if inmap.shape[0] < inmap.shape[1]:
         return (x*inmap.shape[1]) + y
 
+def get_cord(index, inmap):
+    # print(x,y)
+    # return ((y*inmap.shape[0]) + x)width = inmap.shape[1]
+    width = inmap.shape[1]
+    #print(f"width: {width}\n")
+    #print(f"index: {index}\n")
+    x = index % width
+    y = index // width
+    return x, y
+
+
 
 def get_obst(inarr):
     out_arr=[]
@@ -48,6 +59,7 @@ def get_obst(inarr):
 class BENV(Env):
     def __init__(self, inputmap):
         self.inputmap = inputmap
+        print(f"Input map: {inputmap.shape}")
         self.height = inputmap.shape[0]
         self.width = inputmap.shape[1]
         self.sq = int(inputmap.shape[0] * inputmap.shape[1])
@@ -55,6 +67,8 @@ class BENV(Env):
         self.cumul_r = 0
 
         self.player_pos = random.randrange(0, self.sq)
+        self.prev_state = [NOTHING] * self.sq
+        self.prev_pos = self.player_pos
         self.win_pos =  random.randrange(0, self.sq)
         self.lose_pos = get_obst(inputmap)
         #print(f"this is {self.lose_pos}")
@@ -69,19 +83,21 @@ class BENV(Env):
             self.state[get_indice(self.lose_pos[i], self.inputmap)] = LOSE
 
         self.state = np.array(self.state, dtype=np.int16)
-        #print(self.state)
+        print(self.state)
         self.obser_sp = spaces.Box(0, 3, [self.sq], dtype=np.int8)
         self.action_sp = spaces.Discrete(4)
 
     def step(self, action):
+        print(f"action tooK: {action}")
+
         info = {}
         done = False
         reward = -0.01
-        prev_pos = self.player_pos
-
+        self.prev_pos = self.player_pos
+        print(f"is action: {action} equal to {UP}")
         if action == UP:
-            if self.player_pos[0] - int(self.inputmap.shape[0]) >= 0:
-                self.player_pos -= (int(input.shape[0]))
+            if self.player_pos - int(self.inputmap.shape[0]) >= 0:
+                self.player_pos -= (int(self.inputmap.shape[0]))
         elif action == DOWN:
             if self.player_pos + int(self.inputmap.shape[0]) < self.sq:
                 self.player_pos += (int(self.inputmap.shape[0]))
@@ -92,6 +108,7 @@ class BENV(Env):
             if self.player_pos % int(self.inputmap.shape[0]) != int(self.inputmap.shape[0])-1:
                 self.player_pos += 1
         else:
+            #print(action-1)
             raise Exception("Invalid action")
 
         if self.state[self.player_pos] == WIN:
@@ -110,9 +127,10 @@ class BENV(Env):
         return self.state, reward, done, info
 
     def reset(self):
+        self.state = [NOTHING] * self.sq
         self.player_pos = random.randrange(0, self.sq)
         self.win_pos = random.randrange(0, self.sq)
-        self.lose_pos = random.choice(get_obst(self.inputmap))  # pick one position
+        self.lose_pos = get_obst(self.inputmap)  # pick one position
 
         while self.win_pos == self.player_pos:
             self.win_pos = random.randrange(0, self.sq)
@@ -121,7 +139,8 @@ class BENV(Env):
 
         self.state[self.player_pos] = PLAYER
         self.state[self.win_pos] = WIN
-        self.state[self.lose_pos] = LOSE
+        for i in range(0, len(self.lose_pos)):
+            self.state[get_indice(self.lose_pos[i], self.inputmap)] = LOSE
 
         self.state = np.array(self.state, dtype=np.int16)
         return self.state

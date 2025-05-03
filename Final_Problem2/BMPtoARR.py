@@ -8,16 +8,16 @@ bw_img1 = np.array(Image.open("./maps/map1.bmp").convert('1')).T
 bw_img2 = np.array(Image.open("./maps/map2.bmp").convert('1')).T
 
 def checkscope(pos_x, pos_y, x_size, y_size, inputarray): #This function hopefully can be used to be iterated through the input array at given cords and return if that scope is all white or not
-    print(f"Checking ({pos_x}, {pos_y})")
+    #print(f"Checking ({pos_x}, {pos_y})")
 
     for x in range(pos_x, pos_x + x_size):
         for y in range(pos_y, pos_y + y_size):
 
             if (pos_x + x_size >= inputarray.shape[0]):
-                print(f"{pos_x+x_size} was too large to index")
+                #print(f"{pos_x+x_size} was too large to index")
                 break
             if (pos_y + y_size >= inputarray.shape[1]):
-                print(f"{pos_y + y_size} was too large to index")
+                #print(f"{pos_y + y_size} was too large to index")
                 break
 
             #print(f"inner array check ({x}, {y})")

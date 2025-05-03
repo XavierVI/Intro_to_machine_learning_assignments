@@ -26,7 +26,7 @@ map2 = BA.compressbmp(bw_img2,11,11)
 def get_indice(arr, inmap):
     x = arr[0]
     y = arr[1]
-    print(x,y)
+    #print(x,y)
     #return ((y*inmap.shape[0]) + x)
     if inmap.shape[0] >= inmap.shape[1]:
         return (y*inmap.shape[0]) + x

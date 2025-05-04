@@ -97,7 +97,7 @@ class Agent:
         if np.random.default_rng(1).uniform() < self.epsilon:
             return np.random.randint(0, len(self.env.actions))
 
-        return np.argmax(self.q_table[row, col])
+        return np.argmax(self.q_table[row, col, :])
 
     def step(self, alpha=0.01, gamma=0.9):
         # get the current state from the environment
@@ -200,39 +200,40 @@ def animate_trajectory(grid, trajectory, start, goal):
     """
     fig, ax = plt.subplots()
     ax.imshow(grid, cmap='gray')
-    # the axes are ordered as
-    # x = verticle position, 0 - 48 from top to bottom
-    # y = horizontal position, 0 - 48 from left to right
-    ax.plot(start[0], start[1], 'go', markersize=2, label='Start')
-    ax.plot(goal[0], goal[1], 'ro', markersize=2, label='Goal')
+    # the y-axis is from 0 - 48 top to bottom by default
+    ax.plot(start[0], 48 - start[1], 'go', markersize=2, label='Start')
+    ax.plot(goal[0], 48 - goal[1], 'ro', markersize=2, label='Goal')
     # ax.grid(True)
     ax.set_title("Agent's Trajectory")
     ax.legend()
-    # Invert the y-axis for reasons above
-    ax.invert_yaxis()
 
-    agent_path = ax.plot([], [], 'bo', markersize=5)[0]
+    agent_path = ax.plot([], [], 'bo', markersize=2)[0]
 
-    # def update(frame):
-    #     if frame < len(trajectory):
-    #         x, y = trajectory[frame]
-    #         agent_path.set_data(y, x)
-    #     return agent_path
+    def update(frame):
+        if frame < len(trajectory):
+            x = [x for (x, y) in trajectory[:frame]]
+            y = [48 - y for (x, y) in trajectory[:frame]]
+            
+            agent_path.set_xdata(x)
+            agent_path.set_ydata(y)
+        return (agent_path,)
 
-    # ani = animation.FuncAnimation(fig, update, frames=len(
-    #     trajectory), interval=200, blit=True, repeat=False)
+    ani = animation.FuncAnimation(fig, update, frames=len(
+        trajectory), interval=200, blit=True, repeat=False)
     plt.show()
 
 map1 = load_maps(map=1)
-env = Environment(map1, (4, 4), (40, 40))
+env = Environment(map1, (4, 4), (30, 40))
 agent = Agent(env)
 history, trajectories = Q_learning(
     agent=agent,
     env=env,
-    num_episodes=10
+    num_episodes=10,
+    max_steps=1000
 )
 
 print(history)
-print(trajectories[0])
+print(trajectories[-1])
+
 # Animate the first trajectory generated
-animate_trajectory(map1, trajectories[0], (4, 4), (30, 40))
+# animate_trajectory(map1, trajectories[-1], (4, 4), (30, 40))

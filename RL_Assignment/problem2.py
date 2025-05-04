@@ -5,25 +5,28 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from PIL import Image
+import matplotlib.animation as animation
 
+def load_maps(map):
+    if map == 1:
+        map_1 = Image.open(
+            # 532 x 528
+            "./maps/map1_compressed(48,48).bmp")
+        bw_img1 = map_1.convert('1')  # Convert to 1-bit black & white
+        grid1 = np.array(bw_img1)
+        print(grid1.shape)
+        return grid1
 
-def load_maps():
-    map_1 = Image.open(
-        # 532 x 528
-        "../Final_Problem2/maps/map1_compressed(48,48).bmp")
     map_2 = Image.open(
         # 532 x 528
-        "../Final_Problem2/maps/map2_compressed(48,48).bmp")
-    bw_img1 = map_1.convert('1')  # Convert to 1-bit black & white
+        "./maps/map2_compressed(48,48).bmp")
     bw_img2 = map_2.convert('1')  # Convert to 1-bit black & white
 
-    grid1 = np.array(bw_img1)
     grid2 = np.array(bw_img2)
 
-    print(grid1.shape)
     print(grid2.shape)
 
-    return (grid1, grid2)
+    return grid2
 
 
 class Environment:
@@ -78,7 +81,7 @@ class Environment:
 
 
 class Agent:
-    def __init__(self, environment: Environment, epsilon):
+    def __init__(self, environment: Environment, epsilon=0.1):
         self.environment = environment
         self.epsilon = epsilon
 
@@ -96,7 +99,7 @@ class Agent:
 
         return np.argmax(self.q_table[row, col])
 
-    def step(self, learning=False, alpha=0.01, gamma=0.9):
+    def step(self, alpha=0.01, gamma=0.9):
         # get the current state from the environment
         state = self.environment.state
         # choose the direction
@@ -152,6 +155,7 @@ def Q_learning(
     
     """
     history = []
+    trajectories = []
     pbar = pyprind.ProgBar(
         num_episodes, title="Optimizing policy...", width=40)
 
@@ -160,33 +164,75 @@ def Q_learning(
         env.reset()
         avg_reward = 0
         num_steps = 0
+        trajectory = []
 
         for step in range(max_steps):
-            _, reward, done = agent.step(
+            next_s, reward, done = agent.step(
                 alpha=alpha,
                 gamma=gamma
             )
 
             avg_reward += reward
             num_steps += 1
+            trajectory.append(next_s)
 
             # break out of loop if we reached the goal
             if done: break
 
         history.append((num_steps, avg_reward / num_steps))
+        trajectories.append(trajectory)
         pbar.update(1)
 
     pbar.stop()
 
-    return history
+    return history, trajectories
 
-map1, map2 = load_maps()
+
+def animate_trajectory(grid, trajectory, start, goal):
+    """
+    Displays an animation of the agent moving through the map.
+
+    Args:
+        grid (numpy.ndarray): The environment grid.
+        trajectory (list): A list of (row, column) tuples representing the agent's path.
+        start (tuple): The starting position of the agent.
+        goal (tuple): The goal position.
+    """
+    fig, ax = plt.subplots()
+    ax.imshow(grid, cmap='gray')
+    # the axes are ordered as
+    # x = verticle position, 0 - 48 from top to bottom
+    # y = horizontal position, 0 - 48 from left to right
+    ax.plot(start[0], start[1], 'go', markersize=2, label='Start')
+    ax.plot(goal[0], goal[1], 'ro', markersize=2, label='Goal')
+    # ax.grid(True)
+    ax.set_title("Agent's Trajectory")
+    ax.legend()
+    # Invert the y-axis for reasons above
+    ax.invert_yaxis()
+
+    agent_path = ax.plot([], [], 'bo', markersize=5)[0]
+
+    # def update(frame):
+    #     if frame < len(trajectory):
+    #         x, y = trajectory[frame]
+    #         agent_path.set_data(y, x)
+    #     return agent_path
+
+    # ani = animation.FuncAnimation(fig, update, frames=len(
+    #     trajectory), interval=200, blit=True, repeat=False)
+    plt.show()
+
+map1 = load_maps(map=1)
 env = Environment(map1, (4, 4), (40, 40))
 agent = Agent(env)
-history = Q_learning(
+history, trajectories = Q_learning(
     agent=agent,
     env=env,
     num_episodes=10
 )
 
 print(history)
+print(trajectories[0])
+# Animate the first trajectory generated
+animate_trajectory(map1, trajectories[0], (4, 4), (30, 40))

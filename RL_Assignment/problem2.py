@@ -37,6 +37,8 @@ class Environment:
         self.start = start
         # the goal position
         self.goal = goal
+        # used to track the last 20 steps
+        self.state_history = []
 
         self.state = start
         self.actions = {
@@ -52,25 +54,57 @@ class Environment:
 
     def reset(self):
         self.state = self.start
+        self.state_history.clear()
         return self.state
 
-    def get_reward(self, state):
-        if state == self.goal:
-            return 1  # Goal reward
-        else:
-            return -1  # Small negative reward to encourage shorter paths
+    def get_reward(self, state, action, next_state):
+        reward = 0
+        x, y = state
+        next_x, next_y = next_state
+        goal_x, goal_y = self.goal
+
+        # compute manhattan distances
+        current_distance = abs(goal_x - x) + abs(goal_y - y)
+        next_distance = abs(goal_x - next_x) + abs(goal_y - next_y)
+
+        if next_distance < current_distance:
+            reward += 1
+        elif next_distance > current_distance:
+            reward -= 1
+        # elif next_distance == current_distance and next_state != state:
+        #     reward -= 0.1
+
+        if next_state == self.goal:
+            reward += 10
+
+        if next_state in self.state_history:
+            reward -= 0.1
+
+        return reward
 
     def step(self, action):
         dx, dy = self.actions[action]
         x, y = self.state
         delta_x = x + dx
         delta_y = y + dy
+        done = False
+        reward = -0.1
+        
+
         # Check bounds and for wall
         if self.is_valid_move(delta_x, delta_y):
+            reward += self.get_reward(self.state, (dx, dy), (delta_x, delta_y))
             self.state = (delta_x, delta_y)
+            if self.state == self.goal:
+                print('REACHED GOAL!')
+                done = True
+        else:
+            reward -= 10
+            done = True
 
-        reward = self.get_reward(self.state)
-        done = self.state == self.goal
+        self.state_history.append(self.state)
+        if len(self.state_history) > 20:
+            self.state_history.pop(0)
 
         return self.state, reward, done
 
@@ -81,7 +115,7 @@ class Environment:
 
 
 class Agent:
-    def __init__(self, environment: Environment, epsilon=0.1):
+    def __init__(self, environment: Environment, epsilon=0.9):
         self.environment = environment
         self.epsilon = epsilon
 
@@ -95,11 +129,11 @@ class Agent:
         row, col = state
 
         if np.random.default_rng(1).uniform() < self.epsilon:
-            return np.random.randint(0, len(self.env.actions))
+            return np.random.randint(0, len(self.environment.actions))
 
         return np.argmax(self.q_table[row, col, :])
 
-    def step(self, alpha=0.01, gamma=0.9):
+    def step(self, alpha=0.01, gamma=0.4):
         # get the current state from the environment
         state = self.environment.state
         # choose the direction
@@ -114,6 +148,9 @@ class Agent:
             alpha=alpha,
             gamma=gamma
         )
+
+        # reduce epsilon
+        self.epsilon -= 0.01
 
         return next_s, reward, done
 
@@ -162,9 +199,10 @@ def Q_learning(
     for episode in range(num_episodes):
         # reset environment to initial state
         env.reset()
-        avg_reward = 0
+        rewards = []
         num_steps = 0
         trajectory = []
+        done = False
 
         for step in range(max_steps):
             next_s, reward, done = agent.step(
@@ -172,14 +210,15 @@ def Q_learning(
                 gamma=gamma
             )
 
-            avg_reward += reward
+            rewards.append(reward)
             num_steps += 1
             trajectory.append(next_s)
 
             # break out of loop if we reached the goal
             if done: break
 
-        history.append((num_steps, avg_reward / num_steps))
+        reached_goal = env.state == env.goal
+        history.append((num_steps, reached_goal, np.mean(rewards), np.std(rewards)))
         trajectories.append(trajectory)
         pbar.update(1)
 
@@ -219,21 +258,22 @@ def animate_trajectory(grid, trajectory, start, goal):
         return (agent_path,)
 
     ani = animation.FuncAnimation(fig, update, frames=len(
-        trajectory), interval=200, blit=True, repeat=False)
+        trajectory), interval=30, blit=True, repeat=False)
     plt.show()
+
 
 map1 = load_maps(map=1)
 env = Environment(map1, (4, 4), (30, 40))
-agent = Agent(env)
+agent = Agent(env, epsilon=0.85)
 history, trajectories = Q_learning(
     agent=agent,
     env=env,
-    num_episodes=10,
-    max_steps=1000
+    num_episodes=1000,
+    max_steps=200
 )
 
-print(history)
-print(trajectories[-1])
-
 # Animate the first trajectory generated
-# animate_trajectory(map1, trajectories[-1], (4, 4), (30, 40))
+animate_trajectory(map1, trajectories[-1], (4, 4), (30, 40))
+
+for steps, done, avg_reward, reward_std in history:
+    print(f'{steps} & {done} & {avg_reward:.2f} ± {reward_std:.2f} \\\\')

@@ -6,6 +6,7 @@ import numpy as np
 
 from PIL import Image
 import matplotlib.animation as animation
+from IPython.display import HTML
 
 def load_maps(map):
     if map == 1:
@@ -240,8 +241,8 @@ def animate_trajectory(grid, trajectory, start, goal):
     fig, ax = plt.subplots()
     ax.imshow(grid, cmap='gray')
     # the y-axis is from 0 - 48 top to bottom by default
-    ax.plot(start[0], 48 - start[1], 'go', markersize=2, label='Start')
-    ax.plot(goal[0], 48 - goal[1], 'ro', markersize=2, label='Goal')
+    ax.plot(start[1], start[0], 'go', markersize=5, label='Start')
+    ax.plot(goal[1], goal[0], 'ro', markersize=5, label='Goal')
     # ax.grid(True)
     ax.set_title("Agent's Trajectory")
     ax.legend()
@@ -250,30 +251,155 @@ def animate_trajectory(grid, trajectory, start, goal):
 
     def update(frame):
         if frame < len(trajectory):
-            x = [x for (x, y) in trajectory[:frame]]
-            y = [48 - y for (x, y) in trajectory[:frame]]
-            
+            # x = [x for (x, y) in trajectory[:frame]]
+            x = [state[1] for state in trajectory[:frame+1]]
+            # y = [grid.shape[0] - 1 - y for (x, y) in trajectory[:frame]]
+            y = [state[0] for state in trajectory[:frame+1]]
             agent_path.set_xdata(x)
             agent_path.set_ydata(y)
         return (agent_path,)
 
     ani = animation.FuncAnimation(fig, update, frames=len(
-        trajectory), interval=30, blit=True, repeat=False)
+        trajectory), interval=100, blit=True, repeat=False)
+    ani.save("trajectory.mp4")
     plt.show()
 
+# map1 = load_maps(map=1)
+# env = Environment(map1, (4, 4), (30, 40))
+# agent = Agent(env, epsilon=0.85)
+# history, trajectories = Q_learning(
+#     agent=agent,
+#     env=env,
+#     num_episodes=1000,
+#     max_steps=200
+# )
 
-map1 = load_maps(map=1)
-env = Environment(map1, (4, 4), (30, 40))
-agent = Agent(env, epsilon=0.85)
-history, trajectories = Q_learning(
-    agent=agent,
-    env=env,
-    num_episodes=1000,
-    max_steps=200
-)
+def evaluate_policy(agent, env, num_episodes=10, time_steps=200):
+    original_epsilon = agent.epsilon
+    agent.epsilon = 0
+
+    results = []
+    trajectories = []
+
+    for episode in range(num_episodes):
+        state = env.reset()
+        rewards = []
+        steps = 0
+        trajectory = [state]
+        done = False
+
+        for step in range(time_steps):
+            action = agent.choose_action(state)
+            next_state, reward, done = env.step(action)
+
+            rewards.append(reward)
+            steps += 1
+            trajectory.append(next_state)
+
+            state = next_state
+
+            if done:
+                break
+
+        reached_goal = env.state == env.goal
+        results.append((steps, reached_goal, np.mean(rewards), np.std(rewards)))
+        trajectories.append(trajectory)
+
+    agent.epsilon = original_epsilon
+
+    return results, trajectories
+
+def display_evaluation_table(results):
+    print(f"{'Episode':<10}{'Steps':<10}{'Goal Reached':<15}{'Avg Reward':<15}{'Reward StdDev':<15}")
+
+    for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(results):
+        print(f"{i + 1:<10}{steps:<10}{str(reached_goal):<15}{avg_reward:<15.4f}{reward_std:<15.4f}")
+
+def run_experiments():
+    learning_rates = [0.01, 0.1]
+    discounts_factors = [0.4, 0.9]
+
+    training_settings = [
+        (100, 50),
+        (100, 200),
+        (1000, 50),
+        (1000, 200),
+    ]
+
+    map1 = load_maps(map=1)
+    map2 = load_maps(map=2)
+
+    results = []
+
+    for map_num, grid, start, goal in [(1, map1, (4,4), (30,40)),
+                                       (2, map2, (4,4), (30,40))]:
+        print(f"Running experiments on map {map_num}")
+
+        env = Environment(grid, start, goal)
+
+        for alpha in learning_rates:
+            for gamma in discounts_factors:
+                for num_episodes, max_steps in training_settings:
+                    print(f"\nMap: {map_num}, Alpha: {alpha}, Gamma: {gamma}, "
+                          f"Episodes: {num_episodes}, Max Steps: {max_steps}")
+
+                    agent = Agent(env, epsilon=0.85)
+
+                    print("Training agent...")
+                    history, _ =  Q_learning(
+                        agent,
+                        env,
+                        num_episodes = num_episodes,
+                        max_steps = max_steps,
+                        alpha=alpha,
+                        gamma=gamma
+                    )
+
+                    print("\nEvaluating policy...")
+                    eval_results, trajectories = evaluate_policy(
+                        agent=agent,
+                        env=env,
+                        num_episodes=4,
+                        time_steps=200
+                    )
+
+                    display_evaluation_table(eval_results)
 
 # Animate the first trajectory generated
-animate_trajectory(map1, trajectories[-1], (4, 4), (30, 40))
+# animate_trajectory(map1, trajectories[-1], (4, 4), (30, 40))
 
-for steps, done, avg_reward, reward_std in history:
-    print(f'{steps} & {done} & {avg_reward:.2f} ± {reward_std:.2f} \\\\')
+# for steps, done, avg_reward, reward_std in history:
+#     print(f'{steps} & {done} & {avg_reward:.2f} ± {reward_std:.2f} \\\\')
+
+
+if __name__ == '__main__':
+    map1 = load_maps(map=1)
+    env = Environment(map1, (4,4), (30,40))
+
+    agent = Agent(env, epsilon=0.85)
+    history, trajectories = Q_learning(
+        agent,
+        env,
+        num_episodes=500,
+        max_steps=100,
+        alpha=0.01,
+        gamma=0.9
+    )
+
+    eval_results, eval_trajectories = evaluate_policy(
+        agent=agent,
+        env=env,
+        num_episodes=4,
+        time_steps=200
+    )
+
+    display_evaluation_table(eval_results)
+
+    successful_trajectories = [(i, r[0]) for i,r in enumerate(eval_results) if r[1]]
+    if successful_trajectories:
+        best_idx = min(successful_trajectories, key=lambda x: x[1]) [0]
+        print(f"Animating best trajectory (episode #{best_idx+1})...")
+        animate_trajectory(map1, eval_trajectories[best_idx], (4,4), (30,40))
+
+
+    # run_experiments()

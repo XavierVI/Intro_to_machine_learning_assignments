@@ -314,7 +314,7 @@ def display_evaluation_table(results):
     print(f"\n{'Episode':<10}{'Steps':<10}{'Goal Reached':<15}{'Avg Reward':<15}{'Reward StdDev':<15}")
 
     for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(results):
-        print(f"{i + 1:<10}{steps:<10}{str(reached_goal):<15}{avg_reward:<15.4f}{reward_std:<15.4f}")
+        print(f"{i + 1:<10} & {steps:<10} & {str(reached_goal):<15} & {avg_reward:<15.4f} & {reward_std:<15.4f} \\\\")
 
 
 
@@ -348,7 +348,7 @@ def length_of_time_steps(maps, map_configs):
 
             for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
                 table.append(
-                    f"{max_steps:<10}{i + 1:<10}{steps:<10}{str(reached_goal):<15}{avg_reward:<15.4f}{reward_std:<15.4f}")
+                    f"{max_steps:<10} & {i + 1:<10} & {steps:<10} & {str(reached_goal):<15} & {avg_reward:<15.4f} & {reward_std:<15.4f} \\\\")
 
         print(
             f"\n{'Time Steps':<10}{'Steps':<10}{'Goal Reached':<15}{'Avg Reward':<15}{'Reward StdDev':<15}")
@@ -394,7 +394,7 @@ def test_episodes_and_time_steps(maps, map_configs):
 
             for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
                 table.append(
-                    f"{num_episodes:<10}{max_steps:<10}{i + 1:<10}{steps:<10}{str(reached_goal):<15}{avg_reward:<15.4f}{reward_std:<15.4f}")
+                    f"{num_episodes:<10} & {max_steps:<10} & {i + 1:<10} & {steps:<10} & {str(reached_goal):<15} & {avg_reward:<15.4f} & {reward_std:<15.4f} \\\\")
 
         print(
             f"\n{'#Episodes':<10}{'MaxSteps':<10}{'Episode':<10}{'Steps':<10}{'Goal Reached':<15}{'Avg Reward':<15}{'Reward StdDev':<15}")
@@ -438,7 +438,7 @@ def test_hyperparameters(maps, map_configs):
 
                 for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
                     table.append(
-                        f"{alpha:<10}{gamma:<10}{i + 1:<10}{steps:<10}{str(reached_goal):<15}{avg_reward:<15.4f}{reward_std:<15.4f}")
+                        f"{alpha:<10} & {gamma:<10} & {i + 1:<10} & {steps:<10} & {str(reached_goal):<15} & {avg_reward:<15.4f} & {reward_std:<15.4f} \\\\")
 
         print(f"\n{'Alpha':<10}{'Gamma':<10}{'Episode':<10}{'Steps':<10}{'Goal Reached':<15}{'Avg Reward':<15}{'Reward StdDev':<15}")
 

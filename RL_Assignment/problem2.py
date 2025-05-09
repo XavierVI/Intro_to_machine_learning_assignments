@@ -318,7 +318,7 @@ def display_evaluation_table(results):
     print(f"\n{'Episode':<10}{'Steps':<10}{'Goal Reached':<15}{'Avg Reward':<15}{'Reward StdDev':<15}")
 
     for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(results):
-        print(f"{i + 1:<10} & {steps:<10} & {str(reached_goal):<15} & {avg_reward:<15.4f} & {reward_std:<15.4f} \\\\")
+        print(f"{i + 1:<10} & {steps:<10} & {str(reached_goal):<15} & {avg_reward:<15.4f} ± {reward_std:<15.4f} \\\\")
 
 
 def length_of_time_steps(maps, map_configs):
@@ -353,7 +353,7 @@ def length_of_time_steps(maps, map_configs):
 
             for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
                 table.append(
-                    f"{max_steps:} & {steps:} & {str(reached_goal):} & {avg_reward:.4f} & {reward_std:.4f} & {end_time-start_time:.2f} \\\\")
+                    f"{max_steps:} & {steps:} & {str(reached_goal):} & {avg_reward:.4f} ± {reward_std:.4f} & {end_time-start_time:.2f} \\\\")
 
         print('Length of Time Steps Table')
         print(f"\n{'Time Steps'} {'Steps'} {'Goal Reached'} {'Avg Reward'} {'Reward StdDev'} {'Time Cost'}")
@@ -403,7 +403,7 @@ def test_episodes_and_time_steps(maps, map_configs):
 
             for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
                 table.append(
-                    f"{num_episodes} & {max_steps} & {steps} & {str(reached_goal)} & {avg_reward:.4f} & {reward_std:.4f} & {end_time - start_time:.2f} \\\\")
+                    f"{num_episodes} & {max_steps} & {steps} & {str(reached_goal)} & {avg_reward:.4f} ± {reward_std:.4f} & {end_time - start_time:.2f} \\\\")
 
         print('\nEpisodes and Max Time Steps Table')
         print(f"{'#Episodes'} {'MaxSteps'} {'Steps'} {'Goal Reached'} {'Avg Reward'} {'Reward StdDev'} {'Time Cost'}")
@@ -448,7 +448,7 @@ def test_hyperparameters(maps, map_configs):
 
                 for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
                     table.append(
-                        f"{alpha} & {gamma} & {steps} & {str(reached_goal)} & {avg_reward:.4f} & {reward_std:.4f} \\\\")
+                        f"{alpha} & {gamma} & {steps} & {str(reached_goal)} & {avg_reward:.4f} ± {reward_std:.4f} \\\\")
 
         print('Hyperparameters Table')
         print(f"\n{'Alpha'} {'Gamma'} {'Steps'} {'Goal Reached'} {'Avg Reward'} {'Reward StdDev'}")
@@ -473,6 +473,16 @@ if __name__ == '__main__':
     map1_config = ((4, 4), (30, 40))
     map2_config = ((4, 4), (30, 40))
     map_configs = [map1_config, map2_config]
+
+    print('--------------------------------------')
+    print('WARM UP RUN')
+    print('--------------------------------------')
+    env = Environment(map1, (4, 4), (30, 40))
+    agent = Agent(env)
+    evaluate_policy(agent, env)
+    print('--------------------------------------')
+    print('END OF WARM UP RUN')
+    print('--------------------------------------')
 
     length_of_time_steps(maps, map_configs)
     test_episodes_and_time_steps(maps, map_configs)

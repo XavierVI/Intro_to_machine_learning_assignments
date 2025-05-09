@@ -78,10 +78,10 @@ class Environment:
         #     reward -= 0.1
 
         if next_state == self.goal:
-            reward += 10
+            reward += 20
 
         if next_state in self.state_history:
-            reward -= 0.1
+            reward -= 0.5
 
         return reward
 
@@ -266,15 +266,6 @@ def animate_trajectory(grid, trajectory, start, goal):
     ani.save("trajectory.mp4")
     plt.show()
 
-# map1 = load_maps(map=1)
-# env = Environment(map1, (4, 4), (30, 40))
-# agent = Agent(env, epsilon=0.85)
-# history, trajectories = Q_learning(
-#     agent=agent,
-#     env=env,
-#     num_episodes=1000,
-#     max_steps=200
-# )
 
 
 def evaluate_policy(agent, env, num_episodes=10, time_steps=200):
@@ -321,141 +312,144 @@ def display_evaluation_table(results):
         print(f"{i + 1:<10} & {steps:<10} & {str(reached_goal):<15} & {avg_reward:<15.4f} ± {reward_std:<15.4f} \\\\")
 
 
-def length_of_time_steps(maps, map_configs):
-    time_steps = [50, 100, 200, 500]
+def length_of_time_steps(
+        map,
+        map_config,
+        map_num,
+        time_steps
+    ):
+    start, goal = map_config
+    table = []
+    print(f"\nTesting map {map_num}")
 
-    for map_num, grid in enumerate(maps, 1):
-        start, goal = map_configs[map_num-1]
-        table = []
-        print(f"\nTesting map {map_num}")
+    for max_steps in time_steps:
+        print(f"\nMap {map_num} - MaxSteps: {max_steps}")
+        env = Environment(map, start, goal)
+        agent = Agent(env, epsilon=0.9)
 
-        for max_steps in time_steps:
-            print(f"\nMap {map_num} - MaxSteps: {max_steps}")
-            env = Environment(grid, start, goal)
+        history, _ = Q_learning(
+            agent=agent,
+            env=env,
+            num_episodes=1000,
+            max_steps=500,
+            alpha=0.01,
+            gamma=0.9
+        )
+
+        start_time = time.time()
+        eval_results, trajectories = evaluate_policy(
+            agent=agent,
+            env=env,
+            num_episodes=4,
+            time_steps=max_steps
+        )
+        end_time = time.time()
+
+        for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
+            table.append(
+                f"{max_steps:} & {steps:} & {str(reached_goal):} & {avg_reward:.4f} ± {reward_std:.4f} & {end_time-start_time:.2f} \\\\")
+
+    print('\nLength of Time Steps Table')
+    print(f"{'Time Steps'} {'Steps'} {'Goal Reached'} {'Avg Reward'} {'Reward StdDev'} {'Time Cost'}")
+    print('==========================================================================================')
+
+    for row in table:
+        print(row)
+    return eval_results
+
+
+def test_episodes_and_time_steps(
+        map,
+        map_config,
+        map_num,
+        training_settings
+    ):
+    start, goal = map_config
+    table = []
+    print(f"\nTesting map {map_num}")
+
+    for num_episodes, max_steps in training_settings:
+        print(
+            f"\nMap {map_num} - Episodes: {num_episodes}, Max Steps: {max_steps}")
+        env = Environment(map, start, goal)
+        agent = Agent(env, epsilon=0.9)
+
+        start_time = time.time()
+        history, _ = Q_learning(
+            agent=agent,
+            env=env,
+            num_episodes=num_episodes,
+            max_steps=max_steps,
+            alpha=0.01,
+            gamma=0.9
+        )
+        end_time = time.time()
+
+        eval_results, trajectories = evaluate_policy(
+            agent=agent,
+            env=env,
+            num_episodes=4,
+            time_steps=500
+        )
+
+        for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
+            table.append(
+                f"{num_episodes} & {max_steps} & {steps} & {str(reached_goal)} & {avg_reward:.4f} ± {reward_std:.4f} & {end_time - start_time:.2f} \\\\")
+
+    print('\nEpisodes and Max Time Steps Table')
+    print(f"{'#Episodes'} {'MaxSteps'} {'Steps'} {'Goal Reached'} {'Avg Reward'} {'Reward StdDev'} {'Time Cost'}")
+    print("=======================================================================================")
+
+    for row in table:
+        print(row)
+
+    return eval_results
+
+
+def test_hyperparameters(
+        map,
+        map_config,
+        map_num,
+        learning_rates,
+        discount_factors
+    ):
+
+    start, goal = map_config
+    table = []
+    print(f"\nTesting map {map_num}")
+
+    for alpha in learning_rates:
+        for gamma in discount_factors:
+            print(f"\nMap {map_num} - Alpha: {alpha}, Gamma: {gamma}")
+            env = Environment(map, start, goal)
             agent = Agent(env, epsilon=0.9)
 
-            start_time = time.time()
             history, _ = Q_learning(
                 agent=agent,
                 env=env,
                 num_episodes=500,
-                max_steps=max_steps,
-                alpha=0.01,
-                gamma=0.9
+                max_steps=200,
+                alpha=alpha,
+                gamma=gamma
             )
-            end_time = time.time()
 
             eval_results, trajectories = evaluate_policy(
                 agent=agent,
                 env=env,
                 num_episodes=4,
-                time_steps=200)
-
-            for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
-                table.append(
-                    f"{max_steps:} & {steps:} & {str(reached_goal):} & {avg_reward:.4f} ± {reward_std:.4f} & {end_time-start_time:.2f} \\\\")
-
-        print('Length of Time Steps Table')
-        print(f"\n{'Time Steps'} {'Steps'} {'Goal Reached'} {'Avg Reward'} {'Reward StdDev'} {'Time Cost'}")
-        print('==========================================================================================')
-
-        for row in table:
-            print(row)
-    return eval_results
-
-
-def test_episodes_and_time_steps(maps, map_configs):
-    training_settings = [
-        (200, 100),
-        (500, 200),
-        (1000, 200),
-        (1000, 500),
-    ]
-
-    for map_num, grid in enumerate(maps, 1):
-        start, goal = map_configs[map_num-1]
-        table = []
-        print(f"\nTesting map {map_num}")
-
-        for num_episodes, max_steps in training_settings:
-            print(
-                f"\nMap {map_num} - Episodes: {num_episodes}, Max Steps: {max_steps}")
-            env = Environment(grid, start, goal)
-            agent = Agent(env, epsilon=0.9)
-
-            start_time = time.time()
-            history, _ = Q_learning(
-                agent=agent,
-                env=env,
-                num_episodes=num_episodes,
-                max_steps=max_steps,
-                alpha=0.01,
-                gamma=0.9
-            )
-            end_time = time.time()
-
-            eval_results, trajectories = evaluate_policy(
-                agent=agent,
-                env=env,
-                num_episodes=4,
-                time_steps=200
+                time_steps=500
             )
 
             for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
                 table.append(
-                    f"{num_episodes} & {max_steps} & {steps} & {str(reached_goal)} & {avg_reward:.4f} ± {reward_std:.4f} & {end_time - start_time:.2f} \\\\")
+                    f"{alpha} & {gamma} & {steps} & {str(reached_goal)} & {avg_reward:.4f} ± {reward_std:.4f} \\\\")
 
-        print('\nEpisodes and Max Time Steps Table')
-        print(f"{'#Episodes'} {'MaxSteps'} {'Steps'} {'Goal Reached'} {'Avg Reward'} {'Reward StdDev'} {'Time Cost'}")
-        print("=======================================================================================")
+    print('\nHyperparameters Table')
+    print(f"{'Alpha'} {'Gamma'} {'Steps'} {'Goal Reached'} {'Avg Reward'} {'Reward StdDev'}")
+    print('=================================================================================')
 
-        for row in table:
-            print(row)
-
-    return eval_results
-
-
-def test_hyperparameters(maps, map_configs):
-    learning_rates = [0.01, 0.1]
-    discount_factors = [0.4, 0.9]
-
-    for map_num, grid in enumerate(maps, 1):
-        start, goal = map_configs[map_num-1]
-        table = []
-        print(f"\nTesting map {map_num}")
-
-        for alpha in learning_rates:
-            for gamma in discount_factors:
-                print(f"\nMap {map_num} - Alpha: {alpha}, Gamma: {gamma}")
-                env = Environment(grid, start, goal)
-                agent = Agent(env, epsilon=0.9)
-
-                history, _ = Q_learning(
-                    agent=agent,
-                    env=env,
-                    num_episodes=500,
-                    max_steps=150,
-                    alpha=alpha,
-                    gamma=gamma
-                )
-
-                eval_results, trajectories = evaluate_policy(
-                    agent=agent,
-                    env=env,
-                    num_episodes=4,
-                    time_steps=200
-                )
-
-                for i, (steps, reached_goal, avg_reward, reward_std) in enumerate(eval_results):
-                    table.append(
-                        f"{alpha} & {gamma} & {steps} & {str(reached_goal)} & {avg_reward:.4f} ± {reward_std:.4f} \\\\")
-
-        print('Hyperparameters Table')
-        print(f"\n{'Alpha'} {'Gamma'} {'Steps'} {'Goal Reached'} {'Avg Reward'} {'Reward StdDev'}")
-        print('=================================================================================')
-
-        for row in table:
-            print(row)
+    for row in table:
+        print(row)
 
 
 # Animate the first trajectory generated
@@ -484,9 +478,63 @@ if __name__ == '__main__':
     print('END OF WARM UP RUN')
     print('--------------------------------------')
 
-    length_of_time_steps(maps, map_configs)
-    test_episodes_and_time_steps(maps, map_configs)
-    test_hyperparameters(maps, map_configs)
+    print('--------------------------------------')
+    print('MAP 1')
+    print('--------------------------------------')
+
+    length_of_time_steps(
+        maps[0],
+        map_configs[0],
+        1,
+        time_steps=[50, 100, 200, 500]
+    )
+    test_episodes_and_time_steps(
+        maps[0],
+        map_configs[0],
+        1,
+        training_settings=[
+            (200, 100),
+            (500, 200),
+            (1000, 200),
+            (1000, 500),
+        ]
+    )
+    test_hyperparameters(
+        maps[0],
+        map_configs[0],
+        1,
+        learning_rates=[0.01, 0.1],
+        discount_factors=[0.4, 0.9]
+    )
+    
+    print('--------------------------------------')
+    print('MAP 2')
+    print('--------------------------------------')
+
+    length_of_time_steps(
+        maps[1],
+        map_configs[1],
+        2,
+        time_steps=[50, 100, 200, 500]
+    )
+    test_episodes_and_time_steps(
+        maps[1],
+        map_configs[1],
+        2,
+        training_settings=[
+            (500, 200),
+            (1000, 500),
+            (1500, 750),
+            (5000, 500),
+        ]
+    )
+    test_hyperparameters(
+        maps[1],
+        map_configs[1],
+        2,
+        learning_rates=[0.01, 0.1],
+        discount_factors=[0.4, 0.9]
+    )
 
     # # Single test
     # for map_num, grid in enumerate(maps, 1):

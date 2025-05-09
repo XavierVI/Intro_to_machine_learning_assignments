@@ -51,7 +51,7 @@ class Agent:
         """
         # for the epsilon-greedy policy, we select a random action
         # with probability epsilon
-        if np.random.default_rng().uniform() < self.epsilon:
+        if np.random.default_rng(1).uniform() < self.epsilon:
             return np.random.choice(self.U)
 
         # transform the state into one of our discrete states
@@ -81,6 +81,9 @@ class Agent:
         u_idx = self.u_to_index[u]
         next_x_idx = self.s_to_index[next_s[0]]
         next_v_idx = self.s_to_index[next_s[1]]
+
+        # epsilon decay
+        self.epsilon -= 0.01
 
         # get the maximum Q value for the next state
         max_next_s = np.max(
@@ -241,14 +244,14 @@ def evaluate_policy(
     # history = np.array([])
     pbar = pyprind.ProgBar(num_episodes, title="Evaluating policy...", width=40)
 
-    fig = plt.figure(figsize=(12, 6))
+    # fig = plt.figure(figsize=(12, 6))
 
     # Top row - two subplots side by side
-    ax1 = fig.add_subplot(2, 2, 1)  # 2 rows, 2 columns, first subplot
-    ax2 = fig.add_subplot(2, 2, 2)  # 2 rows, 2 columns, second subplot
+    # ax1 = fig.add_subplot(2, 2, 1)  # 2 rows, 2 columns, first subplot
+    # ax2 = fig.add_subplot(2, 2, 2)  # 2 rows, 2 columns, second subplot
 
     # Bottom row - one subplot spanning the width
-    ax3 = fig.add_subplot(2, 1, 2)  # 2 rows, 1 column, second subplot (spanning)
+    # ax3 = fig.add_subplot(2, 1, 2)  # 2 rows, 1 column, second subplot (spanning)
 
     # average distance and reward for each episode
     stats = np.zeros((num_episodes, 4))
@@ -268,39 +271,39 @@ def evaluate_policy(
         stats[episode, 3] = np.std(trajectory[:, 3])
         
         # plotting
-        ax1.plot(range(time_steps), trajectory[:, 0], label="episode " + str(episode))
-        ax2.plot(range(time_steps), trajectory[:, 1], label="episode " + str(episode))
+        # ax1.plot(range(time_steps), trajectory[:, 0], label="episode " + str(episode))
+        # ax2.plot(range(time_steps), trajectory[:, 1], label="episode " + str(episode))
 
-        ax3.plot(trajectory[:, 3], '-', label="episode " + str(episode))
+        # ax3.plot(trajectory[:, 3], '-', label="episode " + str(episode))
                 
         pbar.update(1)
 
     pbar.stop()
 
-    ax1.set_xlabel("t")
-    ax1.set_ylabel("x")
-    ax1.set_ylim(-5, 5)
-    ax1.set_title("Position over time")
-    ax1.grid()
-    ax1.legend(loc="lower left")
+    # ax1.set_xlabel("t")
+    # ax1.set_ylabel("x")
+    # ax1.set_ylim(-5, 5)
+    # ax1.set_title("Position over time")
+    # ax1.grid()
+    # ax1.legend(loc="lower left")
     
-    ax2.set_xlabel("t")
-    ax2.set_ylabel("v")
-    ax2.set_ylim(-5, 5)
-    ax2.set_title("Velocity over time")
-    ax2.grid()
-    ax2.legend(loc="lower left")
+    # ax2.set_xlabel("t")
+    # ax2.set_ylabel("v")
+    # ax2.set_ylim(-5, 5)
+    # ax2.set_title("Velocity over time")
+    # ax2.grid()
+    # ax2.legend(loc="lower left")
 
-    ax3.set_xlabel("Time step (t)")
-    ax3.set_ylabel("Reward (r)")
-    ax3.set_title("Reward history per episode")
-    ax3.legend(loc="lower left")
-    ax3.grid()
+    # ax3.set_xlabel("Time step (t)")
+    # ax3.set_ylabel("Reward (r)")
+    # ax3.set_title("Reward history per episode")
+    # ax3.legend(loc="lower left")
+    # ax3.grid()
 
-    plt.tight_layout()
+    # plt.tight_layout()
     # plt.savefig(fname=f"./problem1_figs/problem1_{file_header}.png", dpi=300)
-    if plot_figure:
-        plt.show()
+    # if plot_figure:
+    #     plt.show()
 
     return stats
 
@@ -313,13 +316,13 @@ def length_of_time_steps():
         alpha=0.01,
         gamma=0.9,
         # use the best state space size
-        state_space_size=101
+        state_space_size=51
     )
     _ = Q_learning(
         agent,
         environment,
-        num_episodes=1000,
-        time_steps=500
+        num_episodes=500,
+        time_steps=200
     )
 
     for time_step in time_steps:
@@ -330,7 +333,7 @@ def length_of_time_steps():
             environment,
             num_episodes=4,
             time_steps=time_step,
-            plot_figure=True
+            plot_figure=False
         )
         end = time.time()
 
@@ -345,9 +348,9 @@ def length_of_time_steps():
 
 def test_episodes_and_time_steps():
     episodes_and_time_steps = [
+        (100, 50),
         (200, 100),
         (500, 200),
-        (1000, 500),
     ]
     environment = CarModel()
     table = []
@@ -357,7 +360,7 @@ def test_episodes_and_time_steps():
             alpha=0.01,
             gamma=0.9,
             # use the best state space size
-            state_space_size=101
+            state_space_size=51
         )
         start = time.time()
         _ = Q_learning(
@@ -397,8 +400,8 @@ def test_state_space():
         _ = Q_learning(
             agent,
             environment,
-            num_episodes=1000,
-            time_steps=500
+            num_episodes=500,
+            time_steps=200
         )
         stats = evaluate_policy(
             agent,
@@ -418,8 +421,8 @@ def test_state_space():
 
 
 def test_hyperparams():
-    alphas = [0.01, 0.1]
-    gammas = [0.4, 0.9]
+    alphas = [0.001, 0.1]
+    gammas = [0.3, 0.9]
     environment = CarModel()
     table = []
 
@@ -429,13 +432,13 @@ def test_hyperparams():
             agent = Agent(
                 alpha=a,
                 gamma=g,
-                state_space_size=101
+                state_space_size=51
             )
             _ = Q_learning(
                 agent,
                 environment,
-                num_episodes=1000,
-                time_steps=500
+                num_episodes=500,
+                time_steps=200
             )
             stats = evaluate_policy(
                 agent,
@@ -453,9 +456,21 @@ def test_hyperparams():
     for row in table:
         print(row)
 
-# length_of_time_steps()
-# test_state_space()
-# test_episodes_and_time_steps()
+
+# warm up run
+print('--------------------------------------')
+print('WARM UP RUN')
+print('--------------------------------------')
+agent = Agent()
+env = CarModel()
+evaluate_policy(agent, env)
+print('--------------------------------------')
+print('END OF WARM UP RUN')
+print('--------------------------------------')
+
+length_of_time_steps()
+test_episodes_and_time_steps()
+test_state_space()
 test_hyperparams()
 
 
